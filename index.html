@@ -25,7 +25,7 @@
           <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
           <a class="nav-link" href="#yield-positions"><span class="nav-icon">↗</span>Yield positions</a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
-          <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Arc network</a>
+          <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover</a>
         </nav>
 
         <div class="sidebar-bottom">
@@ -134,6 +134,16 @@
             <div class="yield-panel-foot" id="yield-updated">Values read from your agent vaults on Arc.</div>
           </section>
 
+          <section class="panel discovery-panel" id="discover" aria-labelledby="discovery-title">
+            <div class="panel-heading">
+              <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover Yield agents</h2></div>
+              <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
+            </div>
+            <p class="discovery-intro">Explore agents created by the Argents Yield factory. Ranked by current USDC value in each agent vault.</p>
+            <div class="discovery-status" id="discovery-status" role="status">Reading public agent activity from Arc…</div>
+            <div class="discovery-list" id="discovery-list"></div>
+          </section>
+
           <section class="bottom-grid">
             <article class="panel mode-panel">
               <div class="panel-heading compact-heading">
@@ -153,7 +163,7 @@
               </div>
             </article>
 
-            <article class="arc-card" id="discover">
+            <article class="arc-card" id="arc-info">
               <div class="arc-card-orb orb-a"></div><div class="arc-card-orb orb-b"></div>
               <div class="arc-label"><span class="arc-mark">a</span> BUILT ON ARC</div>
               <h2>One stablecoin.<br />One agent economy.</h2>

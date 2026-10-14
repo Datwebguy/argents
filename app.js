@@ -14,6 +14,8 @@
   const YIELD_FACTORY_DEPLOY_BLOCK = 25926643;
   const YIELD_INITIAL_AGENT = "0x9eac69A950a13B40BE06547bE833Df653FE32Db8";
   const YIELD_STRATEGY_ADDRESS = "0x8E357432CC12ff425c36432F312968aEb16112AF";
+  const DISCOVERY_STORAGE_KEY = "argents.discovery.yield-v2.v1";
+  const DISCOVERY_SCAN_STEP = 2000;
   const INITIAL_AGENT_ADDRESS = "0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F";
   const STORAGE_KEY = "argents.agentRecords.v1";
   const FACTORY_PREFIX = "argents.factory.v1.";
@@ -36,6 +38,7 @@
   let activeAccount = null;
   let transactionTarget = null;
   let transactionAction = "deposit";
+  let discoveryPending = null;
   const isYieldV2 = (agent) => agent.kind === "yield-v2";
   const vaultType = (agent) => isYieldV2(agent) ? "ArgentsYieldVault" : "ArgentsAgentVault";
 
@@ -243,6 +246,85 @@
     $("#yield-result").innerHTML = failures.length ? `—<span class="metric-unit"> USDC</span>` : `${result < 0n ? "−" : ""}${formatPreciseUsdc(result < 0n ? -result : result)}<span class="metric-unit"> USDC</span>`;
     $("#yield-result-foot").textContent = failures.length ? "Unable to read every Yield position; refresh again" : yieldAgents.length ? "Current value plus withdrawals minus deposits" : "Create a Morpho Yield agent to track results";
     $("#yield-updated").textContent = failures.length ? "Some positions could not be read from Arc. Refresh values to try again." : `Values read from Arc · Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  }
+
+  function discoveryCache() {
+    try {
+      const cached = JSON.parse(localStorage.getItem(DISCOVERY_STORAGE_KEY) || "null");
+      if (cached?.factory === YIELD_FACTORY_ADDRESS.toLowerCase() &&
+          Number.isInteger(cached.lastBlock) && Array.isArray(cached.records) &&
+          cached.records.every((record) => /^0x[a-fA-F0-9]{40}$/.test(record.address) && /^0x[a-fA-F0-9]{40}$/.test(record.owner))) return cached;
+    } catch { /* Rescan from the factory deployment block. */ }
+    return { factory: YIELD_FACTORY_ADDRESS.toLowerCase(), lastBlock: YIELD_FACTORY_DEPLOY_BLOCK - 1, records: [] };
+  }
+
+  async function refreshDiscovery() {
+    if (discoveryPending) return discoveryPending;
+    discoveryPending = (async () => {
+      const status = $("#discovery-status");
+      const button = $("#discovery-refresh");
+      button.disabled = true;
+      try {
+        if (!window.ethers) throw new Error("Could not load the Arc reader. Reload the page.");
+        const publicProvider = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
+        const factoryAbi = (await loadArtifacts("ArgentsYieldFactory")).abi;
+        const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
+        const factoryInterface = new window.ethers.Interface(factoryAbi);
+        const topic = factoryInterface.getEvent("AgentCreated").topicHash;
+        const latest = await publicProvider.getBlockNumber();
+        const cache = discoveryCache();
+        if (cache.lastBlock > latest) {
+          cache.lastBlock = YIELD_FACTORY_DEPLOY_BLOCK - 1;
+          cache.records = [];
+        }
+        for (let from = Math.max(cache.lastBlock + 1, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
+          const to = Math.min(from + DISCOVERY_SCAN_STEP - 1, latest);
+          status.textContent = `Reading Yield factory events · Arc blocks ${from.toLocaleString("en-US")}–${to.toLocaleString("en-US")}`;
+          const logs = await publicProvider.getLogs({ address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
+          const known = new Set(cache.records.map((record) => record.address.toLowerCase()));
+          for (const log of logs) {
+            const event = factoryInterface.parseLog(log);
+            const address = event.args.agent;
+            if (!known.has(address.toLowerCase())) {
+              cache.records.push({ address, owner: event.args.owner, createdBlock: log.blockNumber });
+              known.add(address.toLowerCase());
+            }
+          }
+          cache.lastBlock = to;
+          localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(cache));
+          from = to + 1;
+        }
+        status.textContent = `Reading ${cache.records.length} agent ${cache.records.length === 1 ? "position" : "positions"} from Arc…`;
+        const positions = [];
+        for (let start = 0; start < cache.records.length; start += 8) {
+          const batch = await Promise.allSettled(cache.records.slice(start, start + 8).map(async (record) => {
+            if (!window.ethers.isAddress(record.address) || !window.ethers.isAddress(record.owner)) return null;
+            const vault = new window.ethers.Contract(record.address, vaultAbi, publicProvider);
+            const [name, owner, assets, deposited, withdrawn] = await Promise.all([
+              vault.name(), vault.owner(), vault.totalAssets(), vault.totalDeposited(), vault.totalWithdrawn(),
+            ]);
+            if (owner.toLowerCase() !== record.owner.toLowerCase()) return null;
+            return { address: record.address, owner, name, assets, result: assets + withdrawn - deposited };
+          }));
+          for (const item of batch) if (item.status === "fulfilled" && item.value) positions.push(item.value);
+        }
+        positions.sort((a, b) => a.assets === b.assets ? a.address.localeCompare(b.address) : a.assets > b.assets ? -1 : 1);
+        $("#discovery-list").innerHTML = positions.length ? positions.slice(0, 20).map((agent, index) => `
+          <div class="discovery-row">
+            <span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span>
+            <div class="discovery-identity"><strong>${escapeHtml(agent.name)}</strong><small>By ${shorten(agent.owner)} · ${shorten(agent.address)}</small></div>
+            <div class="discovery-value"><span>CURRENT VALUE</span><strong>${formatPreciseUsdc(agent.assets)} USDC</strong></div>
+            <div class="discovery-value discovery-result"><span>NET RESULT</span><strong class="${agent.result < 0n ? "negative" : ""}">${formatSignedUsdc(agent.result)}</strong></div>
+            <a class="discovery-open" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="View ${escapeHtml(agent.name)} on Arc Explorer">↗</a>
+          </div>`).join("") : `<p class="discovery-intro">No Yield agents found on Arc yet.</p>`;
+        status.textContent = `${positions.length} public Yield ${positions.length === 1 ? "agent" : "agents"} · Ranked by current vault value · Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      } catch (error) {
+        status.textContent = error.shortMessage || error.message || "Could not load public agents from Arc. Refresh to try again.";
+      } finally {
+        button.disabled = false;
+      }
+    })().finally(() => { discoveryPending = null; });
+    return discoveryPending;
   }
 
   async function refreshActivity(agents = visibleAgents()) {
@@ -515,6 +597,7 @@
       showToast(`${name} is live on Arc. Open the vault address to verify it.`);
       $("#activity-body").innerHTML = `<div class="activity-empty-icon">✓</div><p><strong>${escapeHtml(name)}</strong> vault deployed at <span style="font-family:var(--mono)">${shorten(address)}</span>.</p><a class="inline-link" href="https://explorer.arc.io/address/${address}" target="_blank" rel="noreferrer">Verify on Arc Explorer <span>↗</span></a>`;
       refreshActivity(visibleAgents()).catch(() => {});
+      if (mode === "Yield") refreshDiscovery().catch(() => {});
     } catch (error) {
       if (error.code === 4001) showToast("Transaction cancelled in wallet.", "error");
       else showToast(error.shortMessage || error.message || "Could not create the agent on Arc.", "error");
@@ -727,6 +810,7 @@
       $("#yield-updated").textContent = "Could not read Arc positions. Check your connection and try again.";
     });
   });
+  $("#discovery-refresh").addEventListener("click", () => refreshDiscovery());
   setInterval(() => {
     if (activeAccount && document.visibilityState === "visible") refreshAgentBalances().catch(() => {});
   }, 30000);
@@ -769,4 +853,5 @@
   }
 
   renderAgents();
+  refreshDiscovery().catch(() => {});
 })();

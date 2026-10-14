@@ -18,6 +18,7 @@ This file tracks verified facts and remaining checks. It is not a paste-ready ha
 - The Yield V2 vault's owner, name, 100 USDC daily withdrawal cap, Morpho strategy, zero assets, and zero shares were read from chain.
 - The public app and its JavaScript return HTTP 200.
 - The app connects to Arc wallets, creates dedicated vaults, and includes funding, withdrawal, limit, activity, and owner-signed Morpho strategy interfaces.
+- Public Yield discovery scans the Arc factory's creation events and ranks current vault values without a connected wallet.
 - The project owner confirmed a browser wallet deposit and withdrawal round trip on the legacy vault.
 
 ## Limitations to state accurately

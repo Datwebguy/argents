@@ -7,6 +7,7 @@
 - Yield V2 vault with an immutable Morpho Galaxy USDC strategy
 - Legacy custody vaults used by Signals and Treasury prototypes
 - On-chain event history and browser-cached agent metadata
+- Public Yield discovery from factory creation events, with live vault values sorted in the browser
 - Funding interface
 
 ## Data flow (simplified)
@@ -27,5 +28,5 @@
 ## Current limits
 
 - Strategy actions require an owner wallet signature; no autonomous runtime is running
-- Signals, Treasury, public ranking, and cross-user discovery are not operational
+- Signals and Treasury remain prototypes; public ranking currently covers Yield V2 agents only
 - Current Yield V2 agent has no funded position

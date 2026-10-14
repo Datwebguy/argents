@@ -38,6 +38,7 @@ The stated review factors are relevance to Arc, technical credibility, the quali
 - [x] Project description states what Argents does and exactly how it uses Arc (see README.md)
 - [x] Public builder profile is available: https://github.com/Datwebguy
 - [x] Prototype limitations are clearly stated; no unobserved earnings are presented as live
+- [x] Public Yield agent discovery and current-value ranking read from Arc without a connected wallet
 
 The app URL is https://argents-live.funolive9.chatgpt.site. The Yield V2 factory and first agent are verified on Arc Mainnet. The agent can hold shares in Morpho Galaxy USDC through owner-signed contract calls, but its live position is empty until a user funds and deploys it.
 

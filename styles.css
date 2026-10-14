@@ -164,6 +164,22 @@ h1 span { color: var(--lime); }
 .yield-position-note { margin: 16px 0 0; padding-top: 11px; border-top: 1px solid #29392e; color: #89998b; font-size: 10px; line-height: 1.5; }
 .yield-panel-foot { padding: 0 20px 15px; color: #819087; font: 9px var(--mono); }
 
+.discovery-panel { margin-bottom: 17px; }
+.discovery-intro { margin: 0; padding: 15px 20px 0; color: #92a097; font-size: 11px; line-height: 1.6; }
+.discovery-status { padding: 11px 20px; color: #829087; font: 9px var(--mono); }
+.discovery-list { display: grid; gap: 1px; padding: 0 12px 12px; }
+.discovery-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(110px, auto) minmax(90px, auto) 22px; align-items: center; gap: 12px; min-height: 64px; padding: 10px; border-top: 1px solid var(--border-soft); }
+.discovery-rank { color: var(--lime); font: 11px var(--mono); }
+.discovery-identity { min-width: 0; }
+.discovery-identity strong, .discovery-identity small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.discovery-identity strong { font-size: 11px; }
+.discovery-identity small { margin-top: 4px; color: #839287; font: 9px var(--mono); }
+.discovery-value span, .discovery-value strong { display: block; text-align: right; }
+.discovery-value span { color: #819087; font: 8px var(--mono); }
+.discovery-value strong { margin-top: 5px; color: #e6eee5; font: 10px var(--mono); }
+.discovery-value .negative { color: #eaa79b; }
+.discovery-open { color: var(--lime); font-size: 13px; text-align: right; }
+
 .bottom-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(275px, .85fr); gap: 17px; }
 .mode-panel { min-height: 259px; }
 .compact-heading { min-height: 76px; border-bottom: 0; padding-bottom: 8px; }
@@ -311,4 +327,9 @@ h1 span { color: var(--lime); }
   .agent-balance { margin-left: auto; }
   .yield-positions-list { padding: 12px; }
   .yield-position-card { padding: 12px; }
+  .discovery-row { grid-template-columns: 20px minmax(0, 1fr) minmax(86px, auto) 17px; gap: 7px; }
+  .discovery-row .discovery-result { display: none; }
+  .discovery-intro { padding-inline: 14px; }
+  .discovery-status { padding-inline: 14px; }
+  .discovery-list { padding-inline: 7px; }
 }

@@ -23,6 +23,7 @@ The first Yield V2 agent is empty. No USDC has been invested through Argents yet
 - Fund a vault with USDC after approving the transfer.
 - Deploy idle Yield agent USDC to Galaxy USDC on Morpho. The agent vault owns the strategy shares.
 - Follow each agent in the Yield positions section: idle USDC, USDC invested in Morpho, current value, cumulative deposits and withdrawals, and net result. Values refresh every 30 seconds while the page is visible, and users can refresh them manually.
+- Discover public Yield agents from Arc factory events and rank them by current vault value without connecting a wallet. The page caches its last scanned block and reads live balances from each vault.
 - Withdraw USDC to the connected owner wallet, subject to the vault's daily limit. Yield withdrawals recall strategy funds when the Morpho vault has liquidity.
 - Change a vault's daily limit on chain and review deposit, withdrawal, and limit events with Arc Explorer links.
 - Verify wallet and agent vault addresses through Arc Explorer.
@@ -60,7 +61,7 @@ On reconnect, the app reloads agents from the shared factories and reads their b
 - No autonomous strategy execution; the owner signs capital deployment and withdrawals
 - Morpho strategy value and withdrawal liquidity can change; the contracts have no guaranteed return or redemption schedule
 - No hosted agent runtime; owner-signed actions operate the vault
-- No server-side indexer or cross-user public ranking
+- Public discovery is a client-side Arc log scan; it has no hosted indexer and may slow as the number of agents grows
 - Smart contracts have not received an independent security audit
 
 ## Hackathon
