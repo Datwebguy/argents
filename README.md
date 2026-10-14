@@ -5,6 +5,8 @@ Argents is an early prototype for creating and operating USDC agent vaults on Ar
 ## Live deployment
 
 - App: https://argents-live.funolive9.chatgpt.site
+- Public source: https://github.com/Datwebguy/argents
+- Builder profile: https://github.com/Datwebguy
 - Network: Arc Mainnet (chain ID `5042`)
 - Shared factory: [`0xfC887cB480f257e8a76e823de9066b5B528a66a9`](https://explorer.arc.io/address/0xfC887cB480f257e8a76e823de9066b5B528a66a9)
 - First vault, Argents Yield: [`0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F`](https://explorer.arc.io/address/0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F)

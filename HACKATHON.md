@@ -31,12 +31,14 @@ The stated review factors are relevance to Arc, technical credibility, the quali
 
 ## Submission readiness
 
-- [ ] Live app opens and its Arc Mainnet flow works
-- [ ] Public repository is accessible
-- [ ] Live app and repository links are ready
-- [ ] Project description states what Argents does and exactly how it uses Arc
-- [ ] Public builder profile is ready
-- [ ] No testnet-only or mock-only behavior is presented as a working mainnet feature
+- [ ] Live app opens and its Arc Mainnet flow works end-to-end in a connected browser wallet
+- [x] Public repository is accessible: https://github.com/Datwebguy/argents
+- [x] Live app and repository links are ready
+- [x] Project description states what Argents does and exactly how it uses Arc (see README.md)
+- [x] Public builder profile is available: https://github.com/Datwebguy
+- [x] Prototype limitations are clearly stated; no unimplemented strategy is presented as live
+
+The app URL is https://argents-live.funolive9.chatgpt.site. Factory and first vault deployment are verified on Arc Mainnet. The live page returned HTTP 200 and serves the deployed factory configuration. Browser wallet funding and withdrawal flows have not been end-to-end tested, and the Yield mode does not execute a strategy.
 
 ## Arc network note
 
