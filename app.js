@@ -61,7 +61,7 @@
     const amount = Number(value) / 10 ** decimals;
     return new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: amount >= 10000 ? 0 : 2,
+      maximumFractionDigits: decimals === 6 ? 6 : amount >= 10000 ? 0 : 2,
     }).format(amount);
   }
 
@@ -798,8 +798,8 @@
           ? "Move idle USDC from this agent vault into Galaxy USDC on Morpho. Your wallet signs this action. Strategy value can fall, and withdrawals depend on liquidity."
           : "Set the total USDC this vault can withdraw during one UTC day. Deposits do not count toward this cap.";
     $("#transaction-amount-label").textContent = isLimit ? "New daily withdrawal cap" : "Amount";
-    $("#transaction-amount").step = "0.01";
-    $("#transaction-amount").min = isLimit ? "0" : "0.01";
+    $("#transaction-amount").step = "0.000001";
+    $("#transaction-amount").min = isLimit ? "0" : "0.000001";
     $("#transaction-amount").placeholder = isLimit ? formatUsdc(BigInt(agent.dailyLimit), 6) : "0.00";
     $("#transaction-submit").innerHTML = isDeposit ? "Approve and deposit <span>→</span>" : isWithdraw ? "Withdraw to my wallet <span>→</span>" : isSend ? "Send from Treasury <span>→</span>" : isDeploy ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
     $("#transaction-amount").value = "";
