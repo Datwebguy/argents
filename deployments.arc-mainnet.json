@@ -21,5 +21,19 @@
   "morphoStrategyAddress": "0x8E357432CC12ff425c36432F312968aEb16112AF",
   "yieldDepositTxHash": "0x09d8e3406eed8dc386f046ea296d9a0d6e7205ba9bf90b3b89aac5df48804afe",
   "yieldDeployTxHash": "0x156f849e41303a4b4bcfc7d2508fda760cddb9e0fdc031d550fa6d01a802fb1f",
-  "yieldWithdrawTxHash": "0x375d3d3c864d662faa4fdb207db4c68fead373138756df56a2e5fd5218b53ac9"
+  "yieldWithdrawTxHash": "0x375d3d3c864d662faa4fdb207db4c68fead373138756df56a2e5fd5218b53ac9",
+  "modeFactoryAddress": "0x1A9555E261E39830317461a767f8D7B5fBF01c5d",
+  "modeFactoryTxHash": "0x9db4fa2e80a265a280249135f1712528045365d63cec2600078ded476ba0f710",
+  "modeFactoryDeploymentBlock": 25932927,
+  "signalsMarketplaceAddress": "0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68",
+  "signalsMarketplaceTxHash": "0x55653aae6a337c6d37eedce2d59f978e0415ac49c4d4dae1365f175b1f9d18d2",
+  "signalsMarketplaceDeploymentBlock": 25932540,
+  "signalsAgentAddress": "0x70baA8a0c215D9DbD05A340CA89E2129649ca04e",
+  "signalsAgentTxHash": "0x57e4f1e13b07357ec0bc73d9ba4e69ee615826c825cdf77f9c69381d682fb6b1",
+  "signalsAgentCreatedBlock": 25933150,
+  "treasuryAgentAddress": "0xcAbD3D35448E768e591210eEE216b672C8Ed19f3",
+  "treasuryAgentTxHash": "0x1518bf98fb464d4a8d265ca2e917101ca0ebe8ab58d4be466fccd1af930ca273",
+  "treasuryAgentCreatedBlock": 25933166,
+  "firstSignalsOfferId": 1,
+  "firstSignalsOfferTxHash": "0x390aae3efcb76d8705b4d8129d9f2ed303861b534c62d798bce2f502e58c6e3c"
 }

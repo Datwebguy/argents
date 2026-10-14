@@ -1,5 +1,7 @@
 # Agent Prompts & Instructions
 
+These are intended operating instructions. The current Arc product has no unattended AI agent runtime; Yield, Signals, and Treasury actions are initiated by wallet owners. The on-chain vaults enforce ownership and withdrawal caps. See [BUILD_STATUS.md](BUILD_STATUS.md).
+
 ## System-level guidance
 
 Agents should:

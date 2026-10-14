@@ -14,6 +14,9 @@
   const YIELD_FACTORY_DEPLOY_BLOCK = 25926643;
   const YIELD_INITIAL_AGENT = "0x9eac69A950a13B40BE06547bE833Df653FE32Db8";
   const YIELD_STRATEGY_ADDRESS = "0x8E357432CC12ff425c36432F312968aEb16112AF";
+  const SIGNALS_ADDRESS = "0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68";
+  const MODE_FACTORY_ADDRESS = "0x1A9555E261E39830317461a767f8D7B5fBF01c5d";
+  const MODE_FACTORY_DEPLOY_BLOCK = 25932927;
   const DISCOVERY_STORAGE_KEY = "argents.discovery.yield-v2.v1";
   const DISCOVERY_SCAN_STEP = 2000;
   const INITIAL_AGENT_ADDRESS = "0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F";
@@ -152,9 +155,10 @@
         <span class="agent-draft-state agent-contract-state">ON ARC</span>
         <span class="agent-balance" data-balance-for="${escapeHtml(agent.address)}">… USDC</span>
         <a class="agent-explorer" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="Open agent vault in Arc explorer">↗</a>
-        <div class="agent-controls"><button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button><button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
-        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : "Legacy custody vault · No yield strategy"}</div>
+        <div class="agent-controls"><button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
+        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : agent.mode === "Signals" ? `Paid reports: <a href="#signals">publish offers and track orders ↓</a> · Payments stay in this vault` : agent.mode === "Treasury" ? "Receives Arc USDC at this address · Sends require your wallet and count toward the UTC daily cap" : "Legacy custody vault · No yield strategy"}</div>
       </div>`).join("");
+    $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
     const yieldAgents = agents.filter(isYieldV2);
     $("#yield-positions").hidden = yieldAgents.length === 0;
     $("#yield-positions-list").innerHTML = yieldAgents.map((agent) => `
@@ -174,7 +178,7 @@
   }
 
   async function loadArtifacts(contractName) {
-    const source = contractName.startsWith("ArgentsYield") ? "ArgentsYield" : "ArgentsAgent";
+    const source = contractName.startsWith("ArgentsYield") ? "ArgentsYield" : contractName === "ArgentsSignals" ? "ArgentsSignals" : contractName === "ArgentsModeFactory" ? "ArgentsModes" : "ArgentsAgent";
     const base = `./contracts/artifacts/contracts_${source}_sol_${contractName}`;
     const [abiResponse, binResponse] = await Promise.all([fetch(`${base}.abi`), fetch(`${base}.bin`)]);
     if (!abiResponse.ok || !binResponse.ok) throw new Error("Contract artifacts could not be loaded. Serve the project from its root folder.");
@@ -328,6 +332,129 @@
     return discoveryPending;
   }
 
+  async function refreshModeDiscovery() {
+    const status = $("#mode-discovery-status");
+    try {
+      const reader = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
+      const factoryAbi = (await loadArtifacts("ArgentsModeFactory")).abi;
+      const vaultAbi = (await loadArtifacts("ArgentsAgentVault")).abi;
+      const iface = new window.ethers.Interface(factoryAbi);
+      const topic = iface.getEvent("ModeAgentCreated").topicHash;
+      const latest = await reader.getBlockNumber();
+      const records = [];
+      for (let from = MODE_FACTORY_DEPLOY_BLOCK; from <= latest; from += DISCOVERY_SCAN_STEP) {
+        const logs = await reader.getLogs({ address: MODE_FACTORY_ADDRESS, fromBlock: from, toBlock: Math.min(latest, from + DISCOVERY_SCAN_STEP - 1), topics: [topic] });
+        for (const log of logs) {
+          const event = iface.parseLog(log);
+          records.push({ address: event.args.agent, owner: event.args.owner, mode: Number(event.args.mode) === 1 ? "Signals" : "Treasury", name: event.args.name });
+        }
+      }
+      const values = await Promise.allSettled(records.map(async (record) => {
+        const vault = new window.ethers.Contract(record.address, vaultAbi, reader);
+        const [owner, balance] = await Promise.all([vault.owner(), vault.balance()]);
+        return owner.toLowerCase() === record.owner.toLowerCase() ? { ...record, balance } : null;
+      }));
+      const positions = values.filter((item) => item.status === "fulfilled" && item.value).map((item) => item.value);
+      positions.sort((a, b) => a.balance === b.balance ? a.address.localeCompare(b.address) : a.balance > b.balance ? -1 : 1);
+      $("#mode-discovery-list").innerHTML = positions.length ? positions.slice(0, 20).map((agent, index) => `
+        <div class="discovery-row"><span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span><div class="discovery-identity"><strong>${escapeHtml(agent.name)} · ${agent.mode}</strong><small>By ${shorten(agent.owner)} · ${shorten(agent.address)}</small></div><div class="discovery-value"><span>VAULT BALANCE</span><strong>${formatPreciseUsdc(agent.balance)} USDC</strong></div><a class="discovery-open" href="https://explorer.arc.io/address/${agent.address}" target="_blank" rel="noreferrer">↗</a></div>`).join("") : `<p class="discovery-intro">No public Signals or Treasury agents found yet.</p>`;
+      status.textContent = `${positions.length} public Signals and Treasury ${positions.length === 1 ? "agent" : "agents"} · Ranked by vault balance`;
+    } catch (error) { status.textContent = error.shortMessage || error.message || "Could not read public mode agents from Arc."; }
+  }
+
+  async function signalsContract(runner) {
+    const { abi } = await loadArtifacts("ArgentsSignals");
+    return new window.ethers.Contract(SIGNALS_ADDRESS, abi, runner);
+  }
+
+  async function refreshSignals() {
+    const status = $("#signals-status");
+    try {
+      if (!window.ethers) throw new Error("Wallet library is unavailable.");
+      const reader = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
+      const market = await signalsContract(reader);
+      const [offerCount, orderCount] = await Promise.all([market.offerCount(), market.orderCount()]);
+      const offerIds = Array.from({ length: Math.min(Number(offerCount), 50) }, (_, i) => Number(offerCount) - i);
+      const orderIds = Array.from({ length: Math.min(Number(orderCount), 100) }, (_, i) => Number(orderCount) - i);
+      const [offerResults, orderResults] = await Promise.all([
+        Promise.allSettled(offerIds.map((id) => market.getOffer(id).then((offer) => ({ id, offer })))),
+        Promise.allSettled(orderIds.map((id) => market.getOrder(id).then((order) => ({ id, order })))),
+      ]);
+      const offers = offerResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
+      const orders = orderResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
+      $("#signal-offers").innerHTML = `<h3>Available reports</h3>${offers.length ? offers.map(({ id, offer }) => `
+        <div class="signal-row"><div><strong>${escapeHtml(offer.title)}</strong><small>Offer #${id} · ${shorten(offer.publisher)} · <a href="https://explorer.arc.io/address/${offer.vault}" target="_blank" rel="noreferrer">Payment vault ↗</a></small></div><span>${formatPreciseUsdc(offer.price)} USDC</span><button class="agent-action" type="button" data-signal-buy="${id}">Buy</button></div>`).join("") : `<p class="discovery-intro">No paid reports published yet.</p>`}`;
+      const visibleOrders = orders.filter(({ order }) => activeAccount && (order.buyer.toLowerCase() === activeAccount.toLowerCase() || offers.some(({ id, offer }) => BigInt(id) === order.offerId && offer.publisher.toLowerCase() === activeAccount.toLowerCase())));
+      $("#signal-orders").innerHTML = `<h3>Your orders</h3>${visibleOrders.length ? visibleOrders.map(({ id, order }) => {
+        const offer = offers.find((record) => BigInt(record.id) === order.offerId)?.offer;
+        const isPublisher = offer?.publisher.toLowerCase() === activeAccount?.toLowerCase();
+        const isBuyer = order.buyer.toLowerCase() === activeAccount?.toLowerCase();
+        const delivered = Boolean(order.deliveryUri);
+        return `<div class="signal-order"><div><strong>Order #${id} · ${escapeHtml(offer?.title || `Offer #${order.offerId}`)}</strong><small>${order.acknowledged ? "Receipt confirmed" : delivered ? "Delivered on Arc" : "Paid · Awaiting delivery"} · Buyer ${shorten(order.buyer)}</small></div>${delivered ? /^https:\/\//i.test(order.deliveryUri) ? `<a class="signal-uri" href="${escapeHtml(order.deliveryUri)}" target="_blank" rel="noreferrer">Open delivery ↗</a>` : `<code class="signal-uri">${escapeHtml(order.deliveryUri)}</code>` : ""}${isPublisher && !delivered ? `<div class="signal-deliver"><input data-signal-uri="${id}" maxlength="512" placeholder="https://… delivery link" aria-label="Delivery link for order ${id}" /><button class="agent-action" type="button" data-signal-deliver="${id}">Deliver</button></div>` : ""}${isBuyer && delivered && !order.acknowledged ? `<button class="agent-action" type="button" data-signal-ack="${id}">Confirm receipt</button>` : ""}</div>`;
+      }).join("") : `<p class="discovery-intro">Connect the buying or publishing wallet to see its orders.</p>`}`;
+      status.textContent = `${offerCount} offers · ${orderCount} paid orders · Data read from Arc`;
+    } catch (error) {
+      status.textContent = error.shortMessage || error.message || "Could not read Signals data from Arc.";
+    }
+  }
+
+  async function publishSignal(event) {
+    event.preventDefault();
+    try {
+      if (!await ensureConnected()) return;
+      const vaultAddress = $("#signal-vault").value;
+      const title = $("#signal-title").value.trim();
+      const price = parseUsdc($("#signal-price").value);
+      if (!vaultAddress || !title || price <= 0n) throw new Error("Choose your Signals vault, report title, and a price above zero.");
+      const { signer } = await getSigner();
+      const market = await signalsContract(signer);
+      showToast("Confirm the paid report offer in your wallet.");
+      await (await market.createOffer(vaultAddress, title, price)).wait();
+      $("#signal-title").value = "";
+      $("#signal-price").value = "";
+      showToast("Paid report offer published on Arc.");
+      await refreshSignals();
+    } catch (error) { showToast(error.shortMessage || error.message || "Could not publish offer.", "error"); }
+  }
+
+  async function signalAction(event) {
+    const button = event.target.closest("[data-signal-buy], [data-signal-deliver], [data-signal-ack]");
+    if (!button) return;
+    button.disabled = true;
+    try {
+      if (!await ensureConnected()) return;
+      const { signer } = await getSigner();
+      const market = await signalsContract(signer);
+      if (button.dataset.signalBuy) {
+        const offerId = BigInt(button.dataset.signalBuy);
+        const offer = await market.getOffer(offerId);
+        const token = new window.ethers.Contract(USDC_ADDRESS, ["function balanceOf(address) view returns (uint256)", "function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)"], signer);
+        if (await token.balanceOf(activeAccount) < offer.price) throw new Error("Your wallet does not have enough Arc USDC for this report.");
+        if (await token.allowance(activeAccount, SIGNALS_ADDRESS) < offer.price) {
+          showToast("Approve the report price in your wallet.");
+          await (await token.approve(SIGNALS_ADDRESS, offer.price)).wait();
+        }
+        showToast("Confirm payment. USDC goes directly to the publisher's vault.");
+        await (await market.buy(offerId)).wait();
+        showToast("Paid. The publisher can now deliver your report.");
+      } else if (button.dataset.signalDeliver) {
+        const orderId = BigInt(button.dataset.signalDeliver);
+        const uri = document.querySelector(`[data-signal-uri="${orderId}"]`)?.value.trim();
+        if (!uri || !/^https:\/\//i.test(uri)) throw new Error("Enter an HTTPS delivery link. The link is public on chain.");
+        showToast("Confirm the delivery link in your wallet.");
+        await (await market.deliver(orderId, uri)).wait();
+        showToast("Delivery recorded on Arc.");
+      } else {
+        showToast("Confirm receipt in your wallet.");
+        await (await market.acknowledge(BigInt(button.dataset.signalAck))).wait();
+        showToast("Receipt confirmed on Arc.");
+      }
+      await refreshSignals();
+      await syncWallet(activeAccount);
+    } catch (error) { showToast(error.shortMessage || error.message || "Signals transaction failed.", "error"); }
+    finally { button.disabled = false; }
+  }
+
   async function refreshActivity(agents = visibleAgents()) {
     if (!agents.length || !activeAccount) return;
     const browserProvider = provider();
@@ -337,17 +464,26 @@
       const vault = new window.ethers.Contract(agent.address, isYieldV2(agent) ? yieldVault.abi : legacy.abi, browserProvider);
       const entries = [];
       for (let fromBlock = agent.createdBlock; fromBlock <= latestBlock; fromBlock += 2000) {
-        const logs = await browserProvider.getLogs({ address: agent.address, fromBlock, toBlock: Math.min(fromBlock + 1999, latestBlock) });
+        const toBlock = Math.min(fromBlock + 1999, latestBlock);
+        const logs = await browserProvider.getLogs({ address: agent.address, fromBlock, toBlock });
         for (const log of logs) {
           let event;
           try { event = vault.interface.parseLog(log); } catch { continue; }
           const kind = { Deposited: "deposit", Withdrawn: "withdrawal", DailySpendLimitUpdated: "limit", YieldDeployed: "deploy", YieldRecalled: "recall" }[event?.name];
           if (!kind) continue;
           const amount = kind === "limit" ? event.args.newLimit : kind === "recall" ? event.args.assets : event.args.amount ?? event.args.assets;
-          entries.push({ kind, agent, amount, blockNumber: log.blockNumber, txHash: log.transactionHash, index: log.index });
+          entries.push({ kind, agent, amount, recipient: event.args.recipient || null, blockNumber: log.blockNumber, txHash: log.transactionHash, index: log.index });
+        }
+        if (!isYieldV2(agent)) {
+          const transfers = await browserProvider.getLogs({
+            address: USDC_ADDRESS, fromBlock, toBlock,
+            topics: [window.ethers.id("Transfer(address,address,uint256)"), null, window.ethers.zeroPadValue(agent.address, 32)],
+          });
+          for (const log of transfers) entries.push({ kind: "inflow", agent, amount: BigInt(log.data), blockNumber: log.blockNumber, txHash: log.transactionHash, index: log.index });
         }
       }
-      return entries;
+      const depositTransactions = new Set(entries.filter((entry) => entry.kind === "deposit").map((entry) => entry.txHash));
+      return entries.filter((entry) => entry.kind !== "inflow" || !depositTransactions.has(entry.txHash));
     }));
     const entries = eventGroups.flatMap((result) => result.status === "fulfilled" ? result.value : []);
     entries.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
@@ -362,9 +498,9 @@
         <a class="inline-link" href="https://explorer.arc.io/address/${activeAccount}" target="_blank" rel="noreferrer">View wallet on explorer <span>↗</span></a>`;
       return;
     }
-    container.innerHTML = `<div class="onchain-activity-list">${entries.slice(0, 5).map((entry) => {
-      const label = { deposit: "USDC deposited", withdrawal: "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
-      const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : `${entry.kind === "deposit" ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
+    container.innerHTML = `<div class="onchain-activity-list">${entries.slice(0, 30).map((entry) => {
+      const label = { deposit: "USDC deposited", inflow: "USDC received directly", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
+      const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : `${["deposit", "inflow"].includes(entry.kind) ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
       return `<div class="onchain-activity-row">
         <span class="activity-event-mark ${entry.kind}">${entry.kind === "deposit" ? "↓" : entry.kind === "withdrawal" ? "↑" : entry.kind === "deploy" ? "↗" : "≡"}</span>
         <div class="activity-event-copy"><strong>${escapeHtml(entry.agent.name)}</strong><small>${label} · block ${entry.blockNumber.toLocaleString("en-US")}</small></div>
@@ -374,9 +510,9 @@
     }).join("")}</div>`;
   }
 
-  async function findCreationBlock(factory, address, deploymentBlock, latestBlock) {
+  async function findCreationBlock(factory, address, deploymentBlock, latestBlock, eventName = "AgentCreated") {
     for (let fromBlock = deploymentBlock; fromBlock <= latestBlock; fromBlock += 2000) {
-      const events = await factory.queryFilter(factory.filters.AgentCreated(null, address), fromBlock, Math.min(fromBlock + 1999, latestBlock));
+      const events = await factory.queryFilter(factory.filters[eventName](null, address), fromBlock, Math.min(fromBlock + 1999, latestBlock));
       if (events.length) return events[0].blockNumber;
     }
     return null;
@@ -455,6 +591,23 @@
     }));
   }
 
+  async function restoreModeAgents(account) {
+    const browserProvider = provider();
+    const factoryAbi = (await loadArtifacts("ArgentsModeFactory")).abi;
+    const vaultAbi = (await loadArtifacts("ArgentsAgentVault")).abi;
+    const factory = new window.ethers.Contract(MODE_FACTORY_ADDRESS, factoryAbi, browserProvider);
+    const addresses = await factory.agentsOf(account);
+    const latestBlock = await browserProvider.getBlockNumber();
+    await Promise.allSettled(addresses.map(async (address) => {
+      const vault = new window.ethers.Contract(address, vaultAbi, browserProvider);
+      const [owner, name, dailyLimit, modeNumber] = await Promise.all([vault.owner(), vault.name(), vault.dailySpendLimit(), factory.modeOf(address)]);
+      if (owner.toLowerCase() !== account.toLowerCase() || ![1n, 2n].includes(modeNumber)) return;
+      const existing = getAllAgents().find((agent) => agent.address.toLowerCase() === address.toLowerCase());
+      const createdBlock = existing?.createdBlock || await findCreationBlock(factory, address, MODE_FACTORY_DEPLOY_BLOCK, latestBlock, "ModeAgentCreated");
+      saveAgent({ address, owner, name, mode: modeNumber === 1n ? "Signals" : "Treasury", kind: "mode-v1", dailyLimit: String(dailyLimit), createdBlock, createdAt: existing?.createdAt || null });
+    }));
+  }
+
   async function syncWallet(account = activeAccount) {
     if (!window.ethereum || !account) return;
     if (walletMenuAddress.textContent && walletMenuAddress.textContent.toLowerCase() !== account.toLowerCase()) closeWalletMenu();
@@ -484,6 +637,7 @@
     try {
       await restoreAgentsFromChain(account).catch(() => {});
       await restoreYieldAgents(account).catch(() => {});
+      await restoreModeAgents(account).catch(() => {});
     } catch {
       // Wallet balance and network status remain useful if factory reads are unavailable.
     }
@@ -498,6 +652,7 @@
       <a class="inline-link" href="https://explorer.arc.io/address/${account}" target="_blank" rel="noreferrer">View wallet on explorer <span>↗</span></a>`;
     renderAgents();
     refreshActivity(visibleAgents()).catch(() => {});
+    refreshSignals().catch(() => {});
   }
 
   async function connectWallet() {
@@ -545,6 +700,12 @@
       if (configuredUsdc.toLowerCase() !== USDC_ADDRESS.toLowerCase() || configuredStrategy.toLowerCase() !== YIELD_STRATEGY_ADDRESS.toLowerCase()) throw new Error("Yield factory configuration does not match Arc USDC and the selected strategy.");
       return factory;
     }
+    if (mode === "Signals" || mode === "Treasury") {
+      const artifact = await loadArtifacts("ArgentsModeFactory");
+      const factory = new window.ethers.Contract(MODE_FACTORY_ADDRESS, artifact.abi, signer);
+      if ((await factory.usdc()).toLowerCase() !== USDC_ADDRESS.toLowerCase()) throw new Error("Mode factory does not use Arc USDC.");
+      return factory;
+    }
     const key = `${FACTORY_PREFIX}${owner.toLowerCase()}`;
     let address = PLATFORM_FACTORY_ADDRESS || localStorage.getItem(key);
     const factoryArtifact = await loadArtifacts("ArgentsAgentFactory");
@@ -586,14 +747,14 @@
       submit.textContent = "Creating vault…";
       showToast("Confirm agent vault creation in your wallet.");
       const limitInBaseUnits = parseUsdc(limit);
-      const transaction = await factory.createAgent(name, limitInBaseUnits);
+      const transaction = mode === "Yield" ? await factory.createAgent(name, limitInBaseUnits) : await factory.createAgent(name, limitInBaseUnits, mode === "Signals" ? 1 : 2);
       const receipt = await transaction.wait();
       const createdEvent = receipt.logs.map((log) => {
         try { return factory.interface.parseLog(log); } catch { return null; }
-      }).find((eventLog) => eventLog?.name === "AgentCreated");
+      }).find((eventLog) => eventLog?.name === (mode === "Yield" ? "AgentCreated" : "ModeAgentCreated"));
       if (!createdEvent) throw new Error("The transaction completed, but the agent address was not found in its receipt.");
       const address = createdEvent.args.agent;
-      saveAgent({ address, owner, name, mode, kind: mode === "Yield" ? "yield-v2" : "legacy", dailyLimit: String(limitInBaseUnits), createdBlock: receipt.blockNumber, createdAt: new Date().toISOString() });
+      saveAgent({ address, owner, name, mode, kind: mode === "Yield" ? "yield-v2" : "mode-v1", dailyLimit: String(limitInBaseUnits), createdBlock: receipt.blockNumber, createdAt: new Date().toISOString() });
       renderAgents();
       agentDialog.close();
       event.currentTarget.reset();
@@ -602,6 +763,7 @@
       $("#activity-body").innerHTML = `<div class="activity-empty-icon">✓</div><p><strong>${escapeHtml(name)}</strong> vault deployed at <span style="font-family:var(--mono)">${shorten(address)}</span>.</p><a class="inline-link" href="https://explorer.arc.io/address/${address}" target="_blank" rel="noreferrer">Verify on Arc Explorer <span>↗</span></a>`;
       refreshActivity(visibleAgents()).catch(() => {});
       if (mode === "Yield") refreshDiscovery().catch(() => {});
+      else refreshModeDiscovery().catch(() => {});
     } catch (error) {
       if (error.code === 4001) showToast("Transaction cancelled in wallet.", "error");
       else showToast(error.shortMessage || error.message || "Could not create the agent on Arc.", "error");
@@ -624,11 +786,14 @@
     const isWithdraw = action === "withdraw";
     const isLimit = action === "limit";
     const isDeploy = action === "deploy";
-    $("#transaction-title").textContent = isDeposit ? `Fund ${agent.name}.` : isWithdraw ? `Withdraw from ${agent.name}.` : isDeploy ? `Deploy ${agent.name}'s USDC.` : `Set ${agent.name}'s daily withdrawal cap.`;
+    const isSend = action === "send";
+    $("#transaction-title").textContent = isDeposit ? `Fund ${agent.name}.` : isWithdraw ? `Withdraw from ${agent.name}.` : isSend ? `Send from ${agent.name}.` : isDeploy ? `Deploy ${agent.name}'s USDC.` : `Set ${agent.name}'s daily withdrawal cap.`;
     $("#transaction-copy").textContent = isDeposit
       ? "Deposit USDC from your wallet into this agent vault. Incoming deposits are not restricted by the withdrawal cap."
       : isWithdraw
         ? "Withdraw USDC to your wallet, up to the remaining daily cap. Invested USDC is recalled automatically when the strategy has liquidity."
+        : isSend
+          ? "Send USDC from this Treasury vault to an Arc address. Your wallet signs the transfer and the amount counts toward today's withdrawal cap."
         : isDeploy
           ? "Move idle USDC from this agent vault into Galaxy USDC on Morpho. Your wallet signs this action. Strategy value can fall, and withdrawals depend on liquidity."
           : "Set the total USDC this vault can withdraw during one UTC day. Deposits do not count toward this cap.";
@@ -636,8 +801,11 @@
     $("#transaction-amount").step = "0.01";
     $("#transaction-amount").min = isLimit ? "0" : "0.01";
     $("#transaction-amount").placeholder = isLimit ? formatUsdc(BigInt(agent.dailyLimit), 6) : "0.00";
-    $("#transaction-submit").innerHTML = isDeposit ? "Approve and deposit <span>→</span>" : isWithdraw ? "Withdraw to my wallet <span>→</span>" : isDeploy ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
+    $("#transaction-submit").innerHTML = isDeposit ? "Approve and deposit <span>→</span>" : isWithdraw ? "Withdraw to my wallet <span>→</span>" : isSend ? "Send from Treasury <span>→</span>" : isDeploy ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
     $("#transaction-amount").value = "";
+    $("#transaction-recipient-wrap").hidden = !isSend;
+    $("#transaction-recipient").required = isSend;
+    $("#transaction-recipient").value = "";
     $("#dialog-wallet-balance").textContent = "Loading…";
     $("#dialog-vault-balance").textContent = "Loading…";
     $("#dialog-daily-cap").textContent = "Loading…";
@@ -693,7 +861,7 @@
   async function runVaultTransaction(event) {
     event.preventDefault();
     const submit = $("#transaction-submit");
-    const original = transactionAction === "deposit" ? "Approve and deposit <span>→</span>" : transactionAction === "withdraw" ? "Withdraw to my wallet <span>→</span>" : transactionAction === "deploy" ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
+    const original = transactionAction === "deposit" ? "Approve and deposit <span>→</span>" : transactionAction === "withdraw" ? "Withdraw to my wallet <span>→</span>" : transactionAction === "send" ? "Send from Treasury <span>→</span>" : transactionAction === "deploy" ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
     submit.disabled = true;
     try {
       if (!await ensureConnected()) return;
@@ -732,7 +900,10 @@
         const deployment = await vault.deployYield(amount, minShares);
         await deployment.wait();
         showToast(`${formatUsdc(amount, 6)} USDC deployed to Morpho from ${transactionTarget.name}.`);
-      } else if (transactionAction === "withdraw") {
+      } else if (transactionAction === "withdraw" || transactionAction === "send") {
+        if (transactionAction === "send" && transactionTarget.mode !== "Treasury") throw new Error("Only Treasury agents can send to a recipient here.");
+        const recipient = transactionAction === "send" ? $("#transaction-recipient").value.trim() : activeAccount;
+        if (!window.ethers.isAddress(recipient) || recipient === window.ethers.ZeroAddress) throw new Error("Enter a valid Arc recipient address.");
         const [vaultBalance, dailyCap, latestBlock] = await Promise.all([
           isYieldV2(transactionTarget) ? vault.totalAssets() : vault.balance(),
           vault.dailySpendLimit(),
@@ -746,9 +917,9 @@
         if (amount > remaining) throw new Error(`Only ${formatUsdc(remaining, 6)} USDC remains under today's withdrawal cap.`);
         submit.textContent = "Withdrawing…";
         showToast("Review and confirm the withdrawal in your wallet.");
-        const withdrawal = await vault.withdraw(activeAccount, amount);
+        const withdrawal = await vault.withdraw(recipient, amount);
         await withdrawal.wait();
-        showToast(`${formatUsdc(amount, 6)} USDC withdrawn to your wallet.`);
+        showToast(`${formatUsdc(amount, 6)} USDC sent to ${transactionAction === "send" ? shorten(recipient) : "your wallet"}.`);
       } else {
         submit.textContent = "Updating limit…";
         showToast("Review and confirm the new daily withdrawal cap in your wallet.");
@@ -814,7 +985,10 @@
       $("#yield-updated").textContent = "Could not read Arc positions. Check your connection and try again.";
     });
   });
-  $("#discovery-refresh").addEventListener("click", () => refreshDiscovery());
+  $("#discovery-refresh").addEventListener("click", () => { refreshDiscovery(); refreshModeDiscovery(); });
+  $("#signals-refresh").addEventListener("click", refreshSignals);
+  $("#signal-offer-form").addEventListener("submit", publishSignal);
+  $("#signals").addEventListener("click", signalAction);
   setInterval(() => {
     if (activeAccount && document.visibilityState === "visible") refreshAgentBalances().catch(() => {});
   }, 30000);
@@ -824,6 +998,11 @@
   $("#agent-form").addEventListener("submit", createAgent);
   $("#transaction-form").addEventListener("submit", runVaultTransaction);
   $("#agent-list").addEventListener("click", (event) => {
+    const copyButton = event.target.closest("[data-copy-vault]");
+    if (copyButton) {
+      navigator.clipboard.writeText(copyButton.dataset.copyVault).then(() => showToast("Agent vault address copied. Send Arc USDC only.")).catch(() => showToast("Could not copy the vault address.", "error"));
+      return;
+    }
     const button = event.target.closest("[data-action]");
     if (!button) return;
     const agent = visibleAgents()[Number(button.dataset.agentIndex)];
@@ -858,4 +1037,6 @@
 
   renderAgents();
   refreshDiscovery().catch(() => {});
+  refreshModeDiscovery().catch(() => {});
+  refreshSignals().catch(() => {});
 })();

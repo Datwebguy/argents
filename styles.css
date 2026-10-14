@@ -269,6 +269,27 @@ h1 span { color: var(--lime); }
 .amount-input-wrap { position: relative; }
 .amount-input-wrap input { padding-right: 62px; }
 .amount-input-wrap > span { position: absolute; top: 14px; right: 12px; color: #87948c; font: 9px var(--mono); }
+#transaction-recipient-wrap { margin-top: 14px; }
+.signals-panel { margin-bottom: 17px; }
+.signal-offer-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; max-width: 540px; padding: 15px 20px; }
+.signal-offer-form label { color: #9ba99e; font-size: 10px; }
+.signal-offer-form input, .signal-offer-form select, .signal-deliver input { min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #39483f; border-radius: 5px; outline: none; background: #101815; color: #eff2ec; font-size: 10px; }
+.signal-offer-form input:focus, .signal-offer-form select:focus, .signal-deliver input:focus { border-color: var(--lime); }
+.signal-offer-form button { min-height: 36px; margin-top: 6px; }
+.signal-list { padding: 0 20px 16px; }
+.signal-list h3 { margin: 8px 0; color: #c8d3ca; font-size: 11px; }
+.signal-row, .signal-order { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border-soft); }
+.signal-row > div, .signal-order > div:first-child { flex: 1; min-width: 180px; }
+.signal-row strong, .signal-row small, .signal-order strong, .signal-order small { display: block; }
+.signal-row strong, .signal-order strong { color: #ecf2e9; font-size: 11px; }
+.signal-row small, .signal-order small { margin-top: 4px; color: #86958b; font: 9px var(--mono); }
+.signal-row small a { color: var(--lime); }
+.signal-row > span { color: var(--lime); font: 10px var(--mono); }
+.signal-uri { flex-basis: 100%; overflow-wrap: anywhere; color: #b7c5ba; font: 10px var(--mono); }
+.signal-deliver { display: flex; flex-basis: 100%; gap: 8px; }
+.signal-deliver input { flex: 1; }
+.mode-discovery-list .discovery-row { grid-template-columns: 28px minmax(0, 1fr) minmax(110px, auto) 22px; }
+@media (max-width: 720px) { .mode-discovery-list .discovery-row { grid-template-columns: 20px minmax(0, 1fr) minmax(86px, auto) 17px; } }
 
 @media (min-width: 1500px) { .page-wrap { padding-top: 56px; } }
 @media (max-width: 1180px) {

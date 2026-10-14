@@ -32,3 +32,5 @@ Agent manages inflows and controlled outflows.
 ## Scope notes
 
 Primary delivery focuses on one fully operational mode with the others available in reduced form.
+
+The live Yield mode supports owner-signed Morpho deployment and position tracking. Signals and Treasury have on-chain prototype actions, with the payment and Treasury send paths still awaiting a capital round trip. There is no unattended agent runtime; see [BUILD_STATUS.md](BUILD_STATUS.md).

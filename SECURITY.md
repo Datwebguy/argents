@@ -19,7 +19,10 @@ This is an internal source review of the deployed Argents vaults and browser app
 - The vault has no separate emergency function to transfer strategy shares to the owner if ordinary redemption becomes unavailable.
 - The displayed net result equals current vault value plus cumulative withdrawals minus deposits. Direct USDC or Morpho share transfers into the vault can affect this figure. It does not isolate protocol earnings.
 - Public discovery reads factory events and vault balances from Arc in each browser; it has no trusted hosted indexer and may become slow as usage grows.
-- Signals and Treasury are custody prototypes. They do not execute paid delivery or autonomous treasury rules.
+- Signals uses direct payment to the publisher vault. The contract records payment before delivery, but it cannot ensure a useful report is delivered. It has no escrow or refund path. Delivery URIs are public on chain; private content needs separate access control.
+- The Signals contract accepts any compatible owner-controlled USDC vault, not only vaults registered as Signals. The app selects Signals vaults, but the contract itself does not enforce the mode.
+- Treasury sends enforce the same withdrawal cap as owner withdrawals. The owner can raise that cap immediately, so it is not an independent approval control.
+- Signals delivery and Treasury spending remain wallet signed; there is no unattended execution or separate agent key.
 
 ## Evidence
 

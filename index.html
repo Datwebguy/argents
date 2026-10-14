@@ -136,12 +136,31 @@
 
           <section class="panel discovery-panel" id="discover" aria-labelledby="discovery-title">
             <div class="panel-heading">
-              <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover Yield agents</h2></div>
+              <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover agents</h2></div>
               <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
             </div>
             <p class="discovery-intro">Explore agents created by the Argents Yield factory. Ranked by current USDC value in each agent vault. Net results can include direct token transfers.</p>
             <div class="discovery-status" id="discovery-status" role="status">Reading public agent activity from Arc…</div>
             <div class="discovery-list" id="discovery-list"></div>
+            <div class="discovery-status" id="mode-discovery-status" role="status">Reading public Signals and Treasury agents from Arc…</div>
+            <div class="discovery-list mode-discovery-list" id="mode-discovery-list"></div>
+          </section>
+
+          <section class="panel signals-panel" id="signals" aria-labelledby="signals-title">
+            <div class="panel-heading">
+              <div><div class="section-kicker">PAID OUTPUTS ON ARC</div><h2 id="signals-title">Signals marketplace</h2></div>
+              <button class="text-button" id="signals-refresh" type="button">Refresh <span>↻</span></button>
+            </div>
+            <p class="discovery-intro">Publish a report offer from a Signals vault. Buyers pay USDC directly into that vault; the publisher then delivers a link and the buyer can confirm receipt. Delivery links are public on chain, so use access-controlled links for private content.</p>
+            <form id="signal-offer-form" class="signal-offer-form">
+              <label for="signal-vault">Your Signals vault</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
+              <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
+              <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
+              <button class="button-primary" type="submit">Publish paid offer <span>→</span></button>
+            </form>
+            <div class="discovery-status" id="signals-status" role="status">Reading paid offers from Arc…</div>
+            <div class="signal-list" id="signal-offers"></div>
+            <div class="signal-list" id="signal-orders"></div>
           </section>
 
           <section class="bottom-grid">
@@ -182,7 +201,7 @@
       <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
       <div class="dialog-eyebrow"><span class="eyebrow-line"></span> NEW AGENT</div>
       <h2 id="dialog-title">Set your agent in motion.</h2>
-      <p class="dialog-copy">Create a dedicated Arc USDC vault. Yield agents can deploy idle funds to Morpho after a separate wallet approval.</p>
+      <p class="dialog-copy">Create a dedicated Arc USDC vault. Yield can deploy to Morpho; Signals can sell reports; Treasury can send under a daily cap.</p>
       <form id="agent-form">
         <label class="field-label" for="agent-name">Agent name</label>
         <input id="agent-name" name="name" maxlength="32" placeholder="e.g. Atlas Yield" required autocomplete="off" />
@@ -193,7 +212,7 @@
           <option value="Treasury">Treasury · Inflows and spend</option>
         </select>
         <div class="limit-field"><div><label class="field-label" for="agent-limit">Daily withdrawal cap</label><span>USDC per UTC day</span></div><input id="agent-limit" name="limit" type="number" min="0" step="1" value="100" required /></div>
-        <div class="dialog-note"><span>i</span><p>This caps withdrawals per UTC day. Yield deposits are a separate action. Signals and Treasury currently use custody vaults without autonomous execution.</p></div>
+        <div class="dialog-note"><span>i</span><p>This cap limits USDC leaving the vault per UTC day. Yield deployment, Signals delivery, and Treasury sends are wallet signed actions.</p></div>
         <button class="button-primary dialog-submit" id="create-agent-submit" type="submit">Create on Arc <span>→</span></button>
       </form>
     </dialog>
@@ -205,6 +224,7 @@
       <form id="transaction-form">
         <label class="field-label" id="transaction-amount-label" for="transaction-amount">Amount</label>
         <div class="amount-input-wrap"><input id="transaction-amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /><span>USDC</span></div>
+        <div id="transaction-recipient-wrap" hidden><label class="field-label" for="transaction-recipient">Recipient Arc address</label><input id="transaction-recipient" name="recipient" placeholder="0x…" autocomplete="off" /></div>
         <div class="transaction-balance-panel" id="transaction-balances" aria-live="polite">
           <div class="transaction-balance-row"><span>Your wallet</span><strong id="dialog-wallet-balance">Loading…</strong></div>
           <div class="transaction-balance-row"><span id="dialog-vault-label">Agent vault</span><strong id="dialog-vault-balance">Loading…</strong></div>
