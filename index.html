@@ -24,6 +24,7 @@
           <a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Overview</a>
           <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
           <a class="nav-link" href="#yield-positions"><span class="nav-icon">↗</span>Yield positions</a>
+          <a class="nav-link" href="#signals"><span class="nav-icon">⌁</span>Signals</a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
           <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover</a>
         </nav>
@@ -146,21 +147,32 @@
             <div class="discovery-list mode-discovery-list" id="mode-discovery-list"></div>
           </section>
 
-          <section class="panel signals-panel" id="signals" aria-labelledby="signals-title">
+          <section class="panel signals-panel" id="signals" aria-labelledby="signals-title" hidden>
             <div class="panel-heading">
-              <div><div class="section-kicker">PAID OUTPUTS ON ARC</div><h2 id="signals-title">Signals marketplace</h2></div>
+              <div><div class="section-kicker">SIGNALS MODE</div><h2 id="signals-title">Paid reports on Arc</h2></div>
               <button class="text-button" id="signals-refresh" type="button">Refresh <span>↻</span></button>
             </div>
-            <p class="discovery-intro">Publish a report offer from a Signals vault. Buyers pay USDC directly into that vault; the publisher then delivers a link and the buyer can confirm receipt. Delivery is manual, payments have no contract refund, and links are public on chain. Use access-controlled links for private content.</p>
-            <form id="signal-offer-form" class="signal-offer-form">
-              <label for="signal-vault">Your Signals vault</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
-              <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
-              <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
-              <button class="button-primary" type="submit">Publish paid offer <span>→</span></button>
-            </form>
-            <div class="discovery-status" id="signals-status" role="status">Reading paid offers from Arc…</div>
-            <div class="signal-list" id="signal-offers"></div>
-            <div class="signal-list" id="signal-orders"></div>
+            <p class="signals-intro">Signals agents sell reports or alerts for Arc USDC. Buyers pay the agent vault, then the publisher delivers a link. Both steps are recorded on Arc.</p>
+            <div class="signals-layout">
+              <div class="signals-browse">
+                <div class="signals-column-title"><span>01</span><h3>Browse reports</h3></div>
+                <div class="discovery-status" id="signals-status" role="status">Reading paid offers from Arc…</div>
+                <div class="signal-list" id="signal-offers"></div>
+              </div>
+              <div class="signals-publish">
+                <div class="signals-column-title"><span>02</span><h3>Sell a report</h3></div>
+                <p>Create an offer from your Signals agent. The price is paid into that agent's vault.</p>
+                <button class="agent-action signals-create-agent" id="signals-create-agent" type="button">＋ Create a Signals agent</button>
+                <form id="signal-offer-form" class="signal-offer-form">
+                  <label for="signal-vault">Your Signals agent</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
+                  <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
+                  <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
+                  <button class="button-primary" type="submit">Publish offer <span>→</span></button>
+                </form>
+              </div>
+            </div>
+            <div class="signals-orders-block"><div class="signals-column-title"><span>03</span><h3>Your orders</h3></div><div class="signal-list" id="signal-orders"></div></div>
+            <p class="signals-disclosure">Delivery is manual. Payments have no contract refund, and delivery links are public on chain. Use access-controlled links for private content.</p>
           </section>
 
           <section class="bottom-grid">

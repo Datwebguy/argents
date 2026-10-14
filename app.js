@@ -155,8 +155,8 @@
         <span class="agent-draft-state agent-contract-state">ON ARC</span>
         <span class="agent-balance" data-balance-for="${escapeHtml(agent.address)}">… USDC</span>
         <a class="agent-explorer" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="Open agent vault in Arc explorer">↗</a>
-        <div class="agent-controls"><button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
-        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : agent.mode === "Signals" ? `Paid reports: <a href="#signals">publish offers and track orders ↓</a> · Payments stay in this vault` : agent.mode === "Treasury" ? "Receives Arc USDC at this address · Sends require your wallet and count toward the UTC daily cap" : "Legacy custody vault · No yield strategy"}</div>
+        <div class="agent-controls">${agent.mode === "Signals" ? `<a class="agent-action agent-manage-link" href="#signals">Manage Signals →</a>` : ""}<button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
+        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : agent.mode === "Signals" ? "Sell reports for USDC · Payments stay in this vault" : agent.mode === "Treasury" ? "Receives Arc USDC at this address · Sends require your wallet and count toward the UTC daily cap" : "Legacy custody vault · No yield strategy"}</div>
       </div>`).join("");
     $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
     const yieldAgents = agents.filter(isYieldV2);
@@ -382,16 +382,16 @@
       ]);
       const offers = offerResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
       const orders = orderResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
-      $("#signal-offers").innerHTML = `<h3>Available reports</h3>${offers.length ? offers.map(({ id, offer }) => `
-        <div class="signal-row"><div><strong>${escapeHtml(offer.title)}</strong><small>Offer #${id} · ${shorten(offer.publisher)} · <a href="https://explorer.arc.io/address/${offer.vault}" target="_blank" rel="noreferrer">Payment vault ↗</a></small></div><span>${formatPreciseUsdc(offer.price)} USDC</span><button class="agent-action" type="button" data-signal-buy="${id}">Buy</button></div>`).join("") : `<p class="discovery-intro">No paid reports published yet.</p>`}`;
+      $("#signal-offers").innerHTML = offers.length ? offers.map(({ id, offer }) => `
+        <div class="signal-row"><div><strong>${escapeHtml(offer.title)}</strong><small>Offer #${id} · ${shorten(offer.publisher)} · <a href="https://explorer.arc.io/address/${offer.vault}" target="_blank" rel="noreferrer">Payment vault ↗</a></small></div><span>${formatPreciseUsdc(offer.price)} USDC</span><button class="agent-action" type="button" data-signal-buy="${id}">Buy report</button></div>`).join("") : `<p class="signal-empty">No paid reports published yet.</p>`;
       const visibleOrders = orders.filter(({ order }) => activeAccount && (order.buyer.toLowerCase() === activeAccount.toLowerCase() || offers.some(({ id, offer }) => BigInt(id) === order.offerId && offer.publisher.toLowerCase() === activeAccount.toLowerCase())));
-      $("#signal-orders").innerHTML = `<h3>Your orders</h3>${visibleOrders.length ? visibleOrders.map(({ id, order }) => {
+      $("#signal-orders").innerHTML = visibleOrders.length ? visibleOrders.map(({ id, order }) => {
         const offer = offers.find((record) => BigInt(record.id) === order.offerId)?.offer;
         const isPublisher = offer?.publisher.toLowerCase() === activeAccount?.toLowerCase();
         const isBuyer = order.buyer.toLowerCase() === activeAccount?.toLowerCase();
         const delivered = Boolean(order.deliveryUri);
         return `<div class="signal-order"><div><strong>Order #${id} · ${escapeHtml(offer?.title || `Offer #${order.offerId}`)}</strong><small>${order.acknowledged ? "Receipt confirmed" : delivered ? "Delivered on Arc" : "Paid · Awaiting delivery"} · Buyer ${shorten(order.buyer)}</small></div>${delivered ? /^https:\/\//i.test(order.deliveryUri) ? `<a class="signal-uri" href="${escapeHtml(order.deliveryUri)}" target="_blank" rel="noreferrer">Open delivery ↗</a>` : `<code class="signal-uri">${escapeHtml(order.deliveryUri)}</code>` : ""}${isPublisher && !delivered ? `<div class="signal-deliver"><input data-signal-uri="${id}" maxlength="512" placeholder="https://… delivery link" aria-label="Delivery link for order ${id}" /><button class="agent-action" type="button" data-signal-deliver="${id}">Deliver</button></div>` : ""}${isBuyer && delivered && !order.acknowledged ? `<button class="agent-action" type="button" data-signal-ack="${id}">Confirm receipt</button>` : ""}</div>`;
-      }).join("") : `<p class="discovery-intro">Connect the buying or publishing wallet to see its orders.</p>`}`;
+      }).join("") : `<p class="signal-empty">Connect the buying or publishing wallet to see its orders.</p>`;
       status.textContent = `${offerCount} offers · ${orderCount} paid orders · Data read from Arc`;
     } catch (error) {
       status.textContent = error.shortMessage || error.message || "Could not read Signals data from Arc.";
@@ -942,6 +942,24 @@
     }
   }
 
+  function syncView() {
+    const target = window.location.hash.slice(1) || "overview";
+    const isSignals = target === "signals";
+    document.body.classList.toggle("signals-view", isSignals);
+    $("#signals").hidden = !isSignals;
+    $(".breadcrumbs strong").textContent = isSignals ? "Signals" : "Overview";
+    document.querySelectorAll(".primary-nav .nav-link").forEach((link) => {
+      const active = link.getAttribute("href") === `#${target}`;
+      link.classList.toggle("active", active);
+      if (active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+    if (isSignals || target === "overview") window.scrollTo(0, 0);
+    else requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView());
+  }
+
+  window.addEventListener("hashchange", syncView);
+
   connectButton.addEventListener("click", () => {
     if (!activeAccount) {
       connectWallet();
@@ -977,6 +995,7 @@
   $("#disconnect-wallet").addEventListener("click", () => disconnectFromApp());
   $("#header-disconnect").addEventListener("click", () => disconnectFromApp());
   $("#new-agent-button").addEventListener("click", () => openAgentDialog());
+  $("#signals-create-agent").addEventListener("click", () => openAgentDialog("Signals"));
   $("#empty-create").addEventListener("click", () => openAgentDialog());
   $("#view-agents").addEventListener("click", () => $("#agents").scrollIntoView({ behavior: "smooth" }));
   $("#yield-refresh").addEventListener("click", () => {
@@ -1036,6 +1055,7 @@
   }
 
   renderAgents();
+  syncView();
   refreshDiscovery().catch(() => {});
   refreshModeDiscovery().catch(() => {});
   refreshSignals().catch(() => {});
