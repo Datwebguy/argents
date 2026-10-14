@@ -31,14 +31,15 @@ The stated review factors are relevance to Arc, technical credibility, the quali
 
 ## Submission readiness
 
-- [ ] Live app opens and its Arc Mainnet flow works end-to-end in a connected browser wallet
+- [x] Live app opens and the legacy Arc Mainnet deposit and withdrawal flow was exercised by the project owner
+- [ ] Yield V2 funding, Morpho deployment, and redemption are exercised end-to-end in a browser wallet
 - [x] Public repository is accessible: https://github.com/Datwebguy/argents
 - [x] Live app and repository links are ready
 - [x] Project description states what Argents does and exactly how it uses Arc (see README.md)
 - [x] Public builder profile is available: https://github.com/Datwebguy
-- [x] Prototype limitations are clearly stated; no unimplemented strategy is presented as live
+- [x] Prototype limitations are clearly stated; no unobserved earnings are presented as live
 
-The app URL is https://argents-live.funolive9.chatgpt.site. Factory and first vault deployment are verified on Arc Mainnet. The live page returned HTTP 200 and serves the deployed factory configuration. Browser wallet funding and withdrawal flows have not been end-to-end tested, and the Yield mode does not execute a strategy.
+The app URL is https://argents-live.funolive9.chatgpt.site. The Yield V2 factory and first agent are verified on Arc Mainnet. The agent can hold shares in Morpho Galaxy USDC through owner-signed contract calls, but its live position is empty until a user funds and deploys it.
 
 ## Arc network note
 

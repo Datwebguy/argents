@@ -11,5 +11,12 @@
   "owner": "0x67471d8d542111F15481e599E5FF89529EFE60CA",
   "appUrl": "https://argents-live.funolive9.chatgpt.site",
   "repositoryUrl": "https://github.com/Datwebguy/argents",
-  "factoryDeploymentBlock": 25907676
+  "factoryDeploymentBlock": 25907676,
+  "yieldFactoryAddress": "0x02B78468aDA29F698eB6E488EB28d757aA671b6E",
+  "yieldFactoryTxHash": "0x0b46605051a8fb884232c055dc3bdcbe376ec99f8e77c1220b8b81cab6fb59a9",
+  "yieldFactoryDeploymentBlock": 25926643,
+  "yieldAgentAddress": "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
+  "yieldAgentTxHash": "0xa4c8a39bdd0dc9aa52c4ffa3d2091bda3d8aac17f3e04b7c4bfdcbefcfdcdafc",
+  "yieldAgentCreatedBlock": 25926701,
+  "morphoStrategyAddress": "0x8E357432CC12ff425c36432F312968aEb16112AF"
 }

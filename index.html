@@ -42,8 +42,15 @@
         <header class="topbar">
           <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong>Overview</strong></div>
           <div class="top-actions">
-            <div class="live-pill"><span></span><span id="live-status">Arc Mainnet</span></div>
-            <button class="connect-button" id="connect-button"><span class="wallet-icon">▣</span><span id="connect-label">Connect wallet</span></button>
+            <div class="header-wallet-group">
+              <button class="connect-button" id="connect-button" type="button" aria-controls="wallet-menu" aria-expanded="false"><span class="wallet-icon">▣</span><span id="connect-label">Connect wallet</span><span class="wallet-chevron" aria-hidden="true">⌄</span></button>
+              <div class="wallet-menu" id="wallet-menu" hidden>
+                <div class="wallet-menu-label">WALLET ADDRESS</div>
+                <code class="wallet-menu-address" id="wallet-menu-address"></code>
+                <button class="wallet-menu-action" id="header-copy-address" type="button">Copy address</button>
+                <button class="wallet-menu-action wallet-menu-disconnect" id="header-disconnect" type="button">Disconnect</button>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -66,12 +73,12 @@
             <article class="metric-card">
               <div class="metric-top"><span class="metric-label">AGENTS</span><span class="metric-icon">◈</span></div>
               <div class="metric-value" id="metric-agents">0<span class="metric-unit"> agents</span></div>
-              <div class="metric-foot"><span class="metric-muted">Created in this browser</span></div>
+              <div class="metric-foot"><span class="metric-muted">Recovered from Arc when connected</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-top"><span class="metric-label">YIELD EARNED</span><span class="metric-icon">↗</span></div>
-              <div class="metric-value muted-value">—<span class="metric-unit"> USDC</span></div>
-              <div class="metric-foot"><span class="metric-muted">Available after a yield integration</span></div>
+              <div class="metric-top"><span class="metric-label">YIELD RESULT</span><span class="metric-icon">↗</span></div>
+              <div class="metric-value" id="yield-result">—<span class="metric-unit"> USDC</span></div>
+              <div class="metric-foot"><span class="metric-muted" id="yield-result-foot">Connect to read Morpho positions</span></div>
             </article>
             <article class="metric-card chain-card">
               <div class="metric-top"><span class="metric-label">NETWORK STATUS</span><span class="metric-icon">⌁</span></div>
@@ -104,6 +111,14 @@
                 <div class="activity-empty-icon">⌁</div>
                 <p>Connect a wallet to read its live balance and vault status from Arc Mainnet.</p>
                 <button class="inline-link" id="activity-connect">Connect wallet <span>→</span></button>
+              </div>
+              <div class="wallet-controls" id="wallet-controls" hidden>
+                <div class="wallet-address-label">CONNECTED ADDRESS</div>
+                <code class="wallet-address" id="wallet-address"></code>
+                <div class="wallet-action-row">
+                  <button class="wallet-action-button" id="copy-address" type="button">Copy address</button>
+                  <button class="wallet-action-button wallet-disconnect-button" id="disconnect-wallet" type="button">Disconnect</button>
+                </div>
               </div>
               <div class="activity-foot"><span class="activity-live-dot"></span> Arc Mainnet · chain 5042</div>
             </article>
@@ -147,7 +162,7 @@
       <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
       <div class="dialog-eyebrow"><span class="eyebrow-line"></span> NEW AGENT</div>
       <h2 id="dialog-title">Set your agent in motion.</h2>
-      <p class="dialog-copy">Start with a name and operating mode. You can tune its rules as the build takes shape.</p>
+      <p class="dialog-copy">Create a dedicated Arc USDC vault. Yield agents can deploy idle funds to Morpho after a separate wallet approval.</p>
       <form id="agent-form">
         <label class="field-label" for="agent-name">Agent name</label>
         <input id="agent-name" name="name" maxlength="32" placeholder="e.g. Atlas Yield" required autocomplete="off" />
@@ -157,8 +172,8 @@
           <option value="Signals">Signals · Paid outputs</option>
           <option value="Treasury">Treasury · Inflows and spend</option>
         </select>
-        <div class="limit-field"><div><label class="field-label" for="agent-limit">Daily spend limit</label><span>USDC</span></div><input id="agent-limit" name="limit" type="number" min="0" step="1" value="100" required /></div>
-        <div class="dialog-note"><span>i</span><p>Creates a dedicated USDC vault on Arc Mainnet. First use deploys the factory too. Each transaction needs your wallet approval and USDC for gas. Yield execution is not connected yet.</p></div>
+        <div class="limit-field"><div><label class="field-label" for="agent-limit">Daily withdrawal cap</label><span>USDC per UTC day</span></div><input id="agent-limit" name="limit" type="number" min="0" step="1" value="100" required /></div>
+        <div class="dialog-note"><span>i</span><p>This caps withdrawals per UTC day. Yield deposits are a separate action. Signals and Treasury currently use custody vaults without autonomous execution.</p></div>
         <button class="button-primary dialog-submit" id="create-agent-submit" type="submit">Create on Arc <span>→</span></button>
       </form>
     </dialog>
@@ -168,9 +183,19 @@
       <h2 id="transaction-title">Fund this agent.</h2>
       <p class="dialog-copy" id="transaction-copy">Approve USDC, then deposit it into this agent's Arc vault.</p>
       <form id="transaction-form">
-        <label class="field-label" for="transaction-amount">Amount</label>
+        <label class="field-label" id="transaction-amount-label" for="transaction-amount">Amount</label>
         <div class="amount-input-wrap"><input id="transaction-amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /><span>USDC</span></div>
-        <div class="dialog-note"><span>i</span><p>Transactions are signed by your connected wallet. Arc uses USDC for gas.</p></div>
+        <div class="transaction-balance-panel" id="transaction-balances" aria-live="polite">
+          <div class="transaction-balance-row"><span>Your wallet</span><strong id="dialog-wallet-balance">Loading…</strong></div>
+          <div class="transaction-balance-row"><span id="dialog-vault-label">Agent vault</span><strong id="dialog-vault-balance">Loading…</strong></div>
+          <div id="transaction-position" hidden>
+            <div class="transaction-balance-row"><span>Idle in agent</span><strong id="dialog-idle-balance">Loading…</strong></div>
+            <div class="transaction-balance-row"><span>In Morpho</span><strong id="dialog-invested-balance">Loading…</strong></div>
+          </div>
+          <div class="transaction-balance-row"><span>Daily withdrawal cap</span><strong id="dialog-daily-cap">Loading…</strong></div>
+          <div class="transaction-balance-row"><span>Remaining today</span><strong id="dialog-remaining-cap">Loading…</strong></div>
+        </div>
+        <div class="dialog-note"><span>i</span><p id="transaction-rule-note">Balances and withdrawal allowance are loading from Arc. Transactions are signed by your wallet; Arc uses USDC for gas.</p></div>
         <button class="button-primary dialog-submit" id="transaction-submit" type="submit">Approve and deposit <span>→</span></button>
       </form>
     </dialog>
