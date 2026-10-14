@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101715" />
+    <meta name="description" content="Create and monitor USDC agents on Arc." />
+    <title>Argents — USDC agents on Arc</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a class="brand" href="#overview" aria-label="Argents home">
+          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <span>argents<span class="brand-period">.</span></span>
+        </a>
+
+        <div class="workspace-label">WORKSPACE</div>
+        <nav class="primary-nav" aria-label="Main navigation">
+          <a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Overview</a>
+          <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
+          <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
+          <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Arc network</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="network-card">
+            <span class="network-dot"></span>
+            <div><strong>Arc Mainnet</strong><small id="network-caption">USDC is gas</small></div>
+            <span class="network-chain">5042</span>
+          </div>
+          <a class="docs-link" href="https://docs.arc.io/arc/references/connect-to-arc.md" target="_blank" rel="noreferrer"><span>↗</span> Arc documentation</a>
+          <div class="profile-mini"><div class="profile-avatar">A</div><div><strong>Argents</strong><small>Builder workspace</small></div><span class="more-dots">···</span></div>
+        </div>
+      </aside>
+
+      <main class="main-content" id="overview">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong>Overview</strong></div>
+          <div class="top-actions">
+            <div class="live-pill"><span></span><span id="live-status">Arc Mainnet</span></div>
+            <button class="connect-button" id="connect-button"><span class="wallet-icon">▣</span><span id="connect-label">Connect wallet</span></button>
+          </div>
+        </header>
+
+        <div class="page-wrap">
+          <section class="welcome-row">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> YOUR AGENT TREASURY</div>
+              <h1>Capital with <span>agency.</span></h1>
+              <p class="welcome-copy">Create USDC agents, set their boundaries, and follow every move on Arc.</p>
+            </div>
+            <button class="button-primary" id="new-agent-button"><span>＋</span> Create agent</button>
+          </section>
+
+          <section class="metrics-grid" aria-label="Treasury summary">
+            <article class="metric-card balance-card">
+              <div class="metric-top"><span class="metric-label">CONNECTED WALLET</span><span class="metric-icon">◉</span></div>
+              <div class="metric-value" id="wallet-balance">—<span class="metric-unit"> USDC</span></div>
+              <div class="metric-foot"><span class="status-dash"></span><span id="wallet-foot">Connect to read your live Arc balance</span></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">AGENTS</span><span class="metric-icon">◈</span></div>
+              <div class="metric-value" id="metric-agents">0<span class="metric-unit"> agents</span></div>
+              <div class="metric-foot"><span class="metric-muted">Created in this browser</span></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span class="metric-label">YIELD EARNED</span><span class="metric-icon">↗</span></div>
+              <div class="metric-value muted-value">—<span class="metric-unit"> USDC</span></div>
+              <div class="metric-foot"><span class="metric-muted">Available after a yield integration</span></div>
+            </article>
+            <article class="metric-card chain-card">
+              <div class="metric-top"><span class="metric-label">NETWORK STATUS</span><span class="metric-icon">⌁</span></div>
+              <div class="metric-value chain-value"><span class="chain-live-dot"></span><span id="chain-status">Waiting for wallet</span></div>
+              <div class="metric-foot"><span class="metric-muted">Arc Mainnet · chain 5042</span></div>
+            </article>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel agents-panel" id="agents">
+              <div class="panel-heading">
+                <div><div class="section-kicker">YOUR CREW</div><h2>Active agents <span class="heading-count" id="heading-agent-count">0</span></h2></div>
+                <button class="text-button" id="view-agents">View all <span>↗</span></button>
+              </div>
+              <div class="agents-empty" id="agents-empty">
+                <div class="empty-graphic"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="empty-diamond">◇</div><div class="orbit-dot"></div></div>
+                <h3>Your first agent starts here</h3>
+                <p>Give it a name, choose a mode, and define what it can do.</p>
+                <button class="button-outline" id="empty-create"><span>＋</span> Create your first agent</button>
+              </div>
+              <div class="agent-list" id="agent-list" hidden></div>
+            </article>
+
+            <article class="panel activity-panel" id="activity">
+              <div class="panel-heading">
+                <div><div class="section-kicker">ARC MAINNET</div><h2>Wallet connection</h2></div>
+                <a class="icon-button" href="https://explorer.arc.io" target="_blank" rel="noreferrer" aria-label="Open Arc explorer">↗</a>
+              </div>
+              <div class="activity-body" id="activity-body">
+                <div class="activity-empty-icon">⌁</div>
+                <p>Connect a wallet to read its live balance and vault status from Arc Mainnet.</p>
+                <button class="inline-link" id="activity-connect">Connect wallet <span>→</span></button>
+              </div>
+              <div class="activity-foot"><span class="activity-live-dot"></span> Arc Mainnet · chain 5042</div>
+            </article>
+          </section>
+
+          <section class="bottom-grid">
+            <article class="panel mode-panel">
+              <div class="panel-heading compact-heading">
+                <div><div class="section-kicker">CHOOSE YOUR STRATEGY</div><h2>Agent modes</h2></div>
+                <span class="preview-tag">EARLY ACCESS</span>
+              </div>
+              <div class="mode-list">
+                <button class="mode-item mode-yield" data-create-mode="Yield">
+                  <span class="mode-symbol yield-symbol">↗</span><span class="mode-info"><strong>Yield</strong><small>Deploy capital into yield sources</small></span><span class="mode-state">PRIMARY</span><span class="mode-arrow">→</span>
+                </button>
+                <button class="mode-item" data-create-mode="Signals">
+                  <span class="mode-symbol signals-symbol">⌁</span><span class="mode-info"><strong>Signals</strong><small>Deliver paid alerts and reports</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
+                </button>
+                <button class="mode-item" data-create-mode="Treasury">
+                  <span class="mode-symbol treasury-symbol">▤</span><span class="mode-info"><strong>Treasury</strong><small>Manage inflows and controlled spend</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="arc-card" id="discover">
+              <div class="arc-card-orb orb-a"></div><div class="arc-card-orb orb-b"></div>
+              <div class="arc-label"><span class="arc-mark">a</span> BUILT ON ARC</div>
+              <h2>One stablecoin.<br />One agent economy.</h2>
+              <p>USDC powers both value transfer and transaction fees on Arc.</p>
+              <a href="https://arc.io" target="_blank" rel="noreferrer" class="arc-link">Explore Arc <span>↗</span></a>
+              <div class="arc-card-number">5042</div>
+            </article>
+          </section>
+
+          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
+        </div>
+      </main>
+    </div>
+
+    <dialog class="agent-dialog" id="agent-dialog" aria-labelledby="dialog-title">
+      <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
+      <div class="dialog-eyebrow"><span class="eyebrow-line"></span> NEW AGENT</div>
+      <h2 id="dialog-title">Set your agent in motion.</h2>
+      <p class="dialog-copy">Start with a name and operating mode. You can tune its rules as the build takes shape.</p>
+      <form id="agent-form">
+        <label class="field-label" for="agent-name">Agent name</label>
+        <input id="agent-name" name="name" maxlength="32" placeholder="e.g. Atlas Yield" required autocomplete="off" />
+        <label class="field-label mode-label" for="agent-mode">Operating mode</label>
+        <select id="agent-mode" name="mode">
+          <option value="Yield">Yield · Capital deployment</option>
+          <option value="Signals">Signals · Paid outputs</option>
+          <option value="Treasury">Treasury · Inflows and spend</option>
+        </select>
+        <div class="limit-field"><div><label class="field-label" for="agent-limit">Daily spend limit</label><span>USDC</span></div><input id="agent-limit" name="limit" type="number" min="0" step="1" value="100" required /></div>
+        <div class="dialog-note"><span>i</span><p>Creates a dedicated USDC vault on Arc Mainnet. First use deploys the factory too. Each transaction needs your wallet approval and USDC for gas. Yield execution is not connected yet.</p></div>
+        <button class="button-primary dialog-submit" id="create-agent-submit" type="submit">Create on Arc <span>→</span></button>
+      </form>
+    </dialog>
+    <dialog class="agent-dialog transaction-dialog" id="transaction-dialog" aria-labelledby="transaction-title">
+      <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
+      <div class="dialog-eyebrow"><span class="eyebrow-line"></span> USDC VAULT</div>
+      <h2 id="transaction-title">Fund this agent.</h2>
+      <p class="dialog-copy" id="transaction-copy">Approve USDC, then deposit it into this agent's Arc vault.</p>
+      <form id="transaction-form">
+        <label class="field-label" for="transaction-amount">Amount</label>
+        <div class="amount-input-wrap"><input id="transaction-amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /><span>USDC</span></div>
+        <div class="dialog-note"><span>i</span><p>Transactions are signed by your connected wallet. Arc uses USDC for gas.</p></div>
+        <button class="button-primary dialog-submit" id="transaction-submit" type="submit">Approve and deposit <span>→</span></button>
+      </form>
+    </dialog>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

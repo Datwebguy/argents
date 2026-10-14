@@ -1,0 +1,12 @@
+{
+  "chainId": 5042,
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "factoryAddress": "0xfC887cB480f257e8a76e823de9066b5B528a66a9",
+  "agentAddress": "0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F",
+  "name": "Argents Yield",
+  "dailySpendLimitBaseUnits": "100000000",
+  "factoryTxHash": "0x82e544e28dd98c2b8a1e92a19dc67be4823eb6da14b1c7b01a588049dafd644e",
+  "agentTxHash": "0xb6603e13a1b78874f88f426d390c645362834baa45cf2d49b174990fb2ed43de",
+  "agentCreatedBlock": 25907688,
+  "owner": "0x67471d8d542111F15481e599E5FF89529EFE60CA"
+}
