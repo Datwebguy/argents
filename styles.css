@@ -215,7 +215,7 @@ h1 span { color: var(--lime); }
 .agent-draft-state::before { width: 5px; height: 5px; border-radius: 50%; background: #b4ba7c; content: ""; }
 .agent-contract-state { color: var(--green); }
 .agent-contract-state::before { background: var(--green); }
-.agent-controls { display: flex; align-items: center; gap: 6px; }
+.agent-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .agent-action { min-height: 27px; padding: 0 8px; border: 1px solid #425046; border-radius: 4px; background: transparent; color: #c8d3ca; font-size: 9px; cursor: pointer; }
 .agent-action:hover { border-color: var(--lime); color: var(--lime); }
 .agent-balance { min-width: 74px; text-align: right; color: #d9e0d7; font: 10px var(--mono); }
@@ -223,8 +223,10 @@ h1 span { color: var(--lime); }
 .agent-explorer:hover { color: var(--lime); }
 .agent-row { flex-wrap: wrap; }
 .agent-mode-note { flex-basis: 100%; margin: -3px 0 4px 45px; color: #728078; font-size: 9px; }
+.agent-mode-note a { color: var(--lime); }
 .transaction-dialog .dialog-copy { min-height: 34px; }
 .transaction-balance-panel { display: grid; gap: 9px; margin-top: 15px; padding: 12px; border: 1px solid #35443a; border-radius: 5px; background: #111915; }
+#transaction-position:not([hidden]) { display: grid; gap: 9px; }
 .transaction-balance-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #87948c; font-size: 10px; }
 .transaction-balance-row strong { color: #e1e8df; font: 10px var(--mono); text-align: right; }
 .transaction-balance-row:last-child strong { color: var(--lime); }
