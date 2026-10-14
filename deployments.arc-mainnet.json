@@ -8,5 +8,8 @@
   "factoryTxHash": "0x82e544e28dd98c2b8a1e92a19dc67be4823eb6da14b1c7b01a588049dafd644e",
   "agentTxHash": "0xb6603e13a1b78874f88f426d390c645362834baa45cf2d49b174990fb2ed43de",
   "agentCreatedBlock": 25907688,
-  "owner": "0x67471d8d542111F15481e599E5FF89529EFE60CA"
+  "owner": "0x67471d8d542111F15481e599E5FF89529EFE60CA",
+  "appUrl": "https://argents-live.funolive9.chatgpt.site",
+  "repositoryUrl": "https://github.com/Datwebguy/argents",
+  "factoryDeploymentBlock": 25907676
 }

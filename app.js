@@ -9,6 +9,8 @@
   };
   const USDC_ADDRESS = "0x3600000000000000000000000000000000000000";
   const PLATFORM_FACTORY_ADDRESS = "0xfC887cB480f257e8a76e823de9066b5B528a66a9";
+  const PLATFORM_FACTORY_DEPLOY_BLOCK = 25907676;
+  const INITIAL_AGENT_ADDRESS = "0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F";
   const STORAGE_KEY = "argents.agentRecords.v1";
   const FACTORY_PREFIX = "argents.factory.v1.";
   const $ = (selector) => document.querySelector(selector);
@@ -210,16 +212,22 @@
     const records = getAllAgents();
     const known = new Set(records.map((agent) => agent.address.toLowerCase()));
     const missingAddresses = chainAddresses.filter((address) => !known.has(address.toLowerCase()));
+    const latestBlock = await browserProvider.getBlockNumber();
     const recovered = await Promise.allSettled(missingAddresses.map(async (address) => {
       const vault = new window.ethers.Contract(address, vaultArtifact.abi, browserProvider);
       const [name, owner, dailyLimit] = await Promise.all([vault.name(), vault.owner(), vault.dailySpendLimit()]);
+      const created = await factory.queryFilter(
+        factory.filters.AgentCreated(null, address),
+        PLATFORM_FACTORY_DEPLOY_BLOCK,
+        latestBlock,
+      );
       saveAgent({
         address,
         owner,
         name,
-        mode: "Vault",
+        mode: address.toLowerCase() === INITIAL_AGENT_ADDRESS.toLowerCase() ? "Yield" : "Vault",
         dailyLimit: String(dailyLimit),
-        createdBlock: null,
+        createdBlock: created[0]?.blockNumber ?? null,
         createdAt: null,
       });
     }));
