@@ -15,22 +15,23 @@ This file tracks verified facts and remaining checks. It is not a paste-ready ha
 ## Verified implementation
 
 - Legacy and Yield V2 factories and first vaults deployed on Arc Mainnet.
-- The Yield V2 vault's owner, name, 100 USDC daily withdrawal cap, Morpho strategy, zero assets, and zero shares were read from chain.
+- The Yield V2 vault's owner, name, 100 USDC daily withdrawal cap, Morpho strategy, and current position were read from chain.
 - The public app and its JavaScript return HTTP 200.
 - The app connects to Arc wallets, creates dedicated vaults, and includes funding, withdrawal, limit, activity, and owner-signed Morpho strategy interfaces.
 - Public Yield discovery scans the Arc factory's creation events and ranks current vault values without a connected wallet.
 - The project owner confirmed a browser wallet deposit and withdrawal round trip on the legacy vault.
+- The project owner completed a Yield V2 funding, Morpho deployment, and partial withdrawal round trip. The on-chain vault totals are 0.02 USDC deposited, 0.01 USDC withdrawn, and 0.01 USDC invested at the last check.
 
 ## Limitations to state accurately
 
-- No Yield V2 strategy transaction with funds has been observed yet; no yield has been earned or verified.
+- No earned yield has been verified; the live transaction demonstrates capital deployment and redemption.
 - Signals and Treasury are prototype mode labels, not operational services.
-- No autonomous agent runtime or cross-user public discovery/indexer exists.
-- The Yield V2 funding, deployment, and redemption flow has not been end-to-end exercised.
+- No autonomous agent runtime or hosted public discovery indexer exists. Discovery reads on-chain logs in the browser.
+- The displayed net result can include direct token transfers into a vault and is not a protocol-only yield figure.
 - The contracts have not received an independent security audit.
 
 ## Before submitting
 
-- Run the live Yield V2 create, deposit, Morpho deployment, withdrawal, and activity flow in a browser wallet.
+- Confirm the live deployment and public repository still open at submission time.
 - Confirm the public app, source repository, and builder profile are linked in the hackathon entry.
 - Keep the project description limited to the verified implementation above.

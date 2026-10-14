@@ -18,5 +18,8 @@
   "yieldAgentAddress": "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
   "yieldAgentTxHash": "0xa4c8a39bdd0dc9aa52c4ffa3d2091bda3d8aac17f3e04b7c4bfdcbefcfdcdafc",
   "yieldAgentCreatedBlock": 25926701,
-  "morphoStrategyAddress": "0x8E357432CC12ff425c36432F312968aEb16112AF"
+  "morphoStrategyAddress": "0x8E357432CC12ff425c36432F312968aEb16112AF",
+  "yieldDepositTxHash": "0x09d8e3406eed8dc386f046ea296d9a0d6e7205ba9bf90b3b89aac5df48804afe",
+  "yieldDeployTxHash": "0x156f849e41303a4b4bcfc7d2508fda760cddb9e0fdc031d550fa6d01a802fb1f",
+  "yieldWithdrawTxHash": "0x375d3d3c864d662faa4fdb207db4c68fead373138756df56a2e5fd5218b53ac9"
 }

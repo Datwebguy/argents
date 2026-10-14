@@ -13,5 +13,19 @@ async function main() {
     provider.getNetwork(), provider.getCode(await factory.getAddress()), provider.getCode(await vault.getAddress()), factory.usdc(), factory.strategy(), vault.owner(), vault.name(), vault.dailySpendLimit(), vault.totalAssets(), vault.balance(), vault.strategyShares(), vault.strategyAssets(), vault.totalDeposited(), vault.totalWithdrawn(),
   ]);
   console.log(JSON.stringify({ chainId: String(chain.chainId), factoryHasCode: factoryCode !== '0x', vaultHasCode: vaultCode !== '0x', agents, usdc, strategy, vaultOwner, name, dailyLimitBaseUnits: String(limit), totalAssetsBaseUnits: String(assets), idleBaseUnits: String(idle), investedBaseUnits: String(invested), totalDepositedBaseUnits: String(deposited), totalWithdrawnBaseUnits: String(withdrawn), shares: String(shares) }, null, 2));
+  const latestBlock = await provider.getBlockNumber();
+  const events = [];
+  for (let fromBlock = 25926701; fromBlock <= latestBlock; fromBlock += 2000) {
+    const logs = await provider.getLogs({ address: await vault.getAddress(), fromBlock, toBlock: Math.min(fromBlock + 1999, latestBlock) });
+    for (const log of logs) {
+      try {
+        const parsed = vault.interface.parseLog(log);
+        if (['Deposited', 'YieldDeployed', 'Withdrawn', 'YieldRecalled'].includes(parsed.name)) {
+          events.push({ name: parsed.name, blockNumber: log.blockNumber, txHash: log.transactionHash });
+        }
+      } catch { /* Other contract events are irrelevant here. */ }
+    }
+  }
+  console.log(JSON.stringify({ activityEvents: events }, null, 2));
 }
 main().catch((error) => { console.error(error.shortMessage || error.message); process.exitCode = 1; });

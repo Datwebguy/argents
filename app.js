@@ -232,7 +232,7 @@
           const resultNode = card.querySelector('[data-position="result"]');
           resultNode.textContent = formatSignedUsdc(result);
           resultNode.classList.toggle("negative", result < 0n);
-          card.querySelector('[data-position="basis"]').textContent = `Deposited ${formatPreciseUsdc(deposited)} USDC · Withdrawn ${formatPreciseUsdc(withdrawn)} USDC · Result = current value + withdrawals − deposits`;
+          card.querySelector('[data-position="basis"]').textContent = `Deposited ${formatPreciseUsdc(deposited)} USDC · Withdrawn ${formatPreciseUsdc(withdrawn)} USDC · Result = current value + withdrawals − deposits. Direct transfers can affect this figure.`;
         }
       } else balance = await vault.balance();
       const element = document.querySelector(`[data-balance-for="${agent.address.toLowerCase()}"]`) ||
@@ -335,28 +335,28 @@
     const latestBlock = await browserProvider.getBlockNumber();
     const eventGroups = await Promise.allSettled(agents.filter((agent) => Number.isInteger(agent.createdBlock)).map(async (agent) => {
       const vault = new window.ethers.Contract(agent.address, isYieldV2(agent) ? yieldVault.abi : legacy.abi, browserProvider);
-      const fromBlock = agent.createdBlock;
-      const [deposits, withdrawals, limitChanges] = await Promise.all([
-        vault.queryFilter(vault.filters.Deposited(), fromBlock, latestBlock),
-        vault.queryFilter(vault.filters.Withdrawn(), fromBlock, latestBlock),
-        vault.queryFilter(vault.filters.DailySpendLimitUpdated(), fromBlock, latestBlock),
-      ]);
-      const strategyEvents = isYieldV2(agent) ? await Promise.all([
-        vault.queryFilter(vault.filters.YieldDeployed(), fromBlock, latestBlock),
-        vault.queryFilter(vault.filters.YieldRecalled(), fromBlock, latestBlock),
-      ]) : [[], []];
-      return [
-        ...deposits.map((event) => ({ kind: "deposit", agent, amount: event.args.amount, blockNumber: event.blockNumber, txHash: event.transactionHash, index: event.index })),
-        ...withdrawals.map((event) => ({ kind: "withdrawal", agent, amount: event.args.amount, blockNumber: event.blockNumber, txHash: event.transactionHash, index: event.index })),
-        ...limitChanges.map((event) => ({ kind: "limit", agent, amount: event.args.newLimit, blockNumber: event.blockNumber, txHash: event.transactionHash, index: event.index })),
-        ...strategyEvents[0].map((event) => ({ kind: "deploy", agent, amount: event.args.assets, blockNumber: event.blockNumber, txHash: event.transactionHash, index: event.index })),
-        ...strategyEvents[1].map((event) => ({ kind: "recall", agent, amount: event.args.assets, blockNumber: event.blockNumber, txHash: event.transactionHash, index: event.index })),
-      ];
+      const entries = [];
+      for (let fromBlock = agent.createdBlock; fromBlock <= latestBlock; fromBlock += 2000) {
+        const logs = await browserProvider.getLogs({ address: agent.address, fromBlock, toBlock: Math.min(fromBlock + 1999, latestBlock) });
+        for (const log of logs) {
+          let event;
+          try { event = vault.interface.parseLog(log); } catch { continue; }
+          const kind = { Deposited: "deposit", Withdrawn: "withdrawal", DailySpendLimitUpdated: "limit", YieldDeployed: "deploy", YieldRecalled: "recall" }[event?.name];
+          if (!kind) continue;
+          const amount = kind === "limit" ? event.args.newLimit : kind === "recall" ? event.args.assets : event.args.amount ?? event.args.assets;
+          entries.push({ kind, agent, amount, blockNumber: log.blockNumber, txHash: log.transactionHash, index: log.index });
+        }
+      }
+      return entries;
     }));
     const entries = eventGroups.flatMap((result) => result.status === "fulfilled" ? result.value : []);
     entries.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
     const container = $("#activity-body");
     if (!entries.length) {
+      if (eventGroups.some((result) => result.status === "rejected")) {
+        container.innerHTML = `<div class="activity-empty-icon">!</div><p>Could not load vault history from Arc. Reload the page or view the vault on Arc Explorer.</p>`;
+        return;
+      }
       container.innerHTML = `<div class="activity-empty-icon">✓</div>
         <p>Wallet connected on Arc Mainnet. Current block: <span style="color:#d0f16d;font-family:var(--mono)">${latestBlock.toLocaleString("en-US")}</span>.</p>
         <a class="inline-link" href="https://explorer.arc.io/address/${activeAccount}" target="_blank" rel="noreferrer">View wallet on explorer <span>↗</span></a>`;
@@ -372,6 +372,14 @@
         <a href="https://explorer.arc.io/tx/${entry.txHash}" target="_blank" rel="noreferrer" aria-label="Verify transaction on Arc Explorer">↗</a>
       </div>`;
     }).join("")}</div>`;
+  }
+
+  async function findCreationBlock(factory, address, deploymentBlock, latestBlock) {
+    for (let fromBlock = deploymentBlock; fromBlock <= latestBlock; fromBlock += 2000) {
+      const events = await factory.queryFilter(factory.filters.AgentCreated(null, address), fromBlock, Math.min(fromBlock + 1999, latestBlock));
+      if (events.length) return events[0].blockNumber;
+    }
+    return null;
   }
 
   async function restoreAgentsFromChain(account) {
@@ -408,18 +416,14 @@
     const recovered = await Promise.allSettled(missingAddresses.map(async (address) => {
       const vault = new window.ethers.Contract(address, vaultArtifact.abi, browserProvider);
       const [name, owner, dailyLimit] = await Promise.all([vault.name(), vault.owner(), vault.dailySpendLimit()]);
-      const created = await factory.queryFilter(
-        factory.filters.AgentCreated(null, address),
-        PLATFORM_FACTORY_DEPLOY_BLOCK,
-        latestBlock,
-      );
+      const createdBlock = await findCreationBlock(factory, address, PLATFORM_FACTORY_DEPLOY_BLOCK, latestBlock);
       saveAgent({
         address,
         owner,
         name,
         mode: address.toLowerCase() === INITIAL_AGENT_ADDRESS.toLowerCase() ? "Yield" : "Vault",
         dailyLimit: String(dailyLimit),
-        createdBlock: created[0]?.blockNumber ?? null,
+        createdBlock,
         createdAt: null,
       });
     }));
@@ -444,8 +448,7 @@
       if (!createdBlock) {
         if (address.toLowerCase() === YIELD_INITIAL_AGENT.toLowerCase()) createdBlock = 25926701;
         else {
-          const events = await factory.queryFilter(factory.filters.AgentCreated(null, address), YIELD_FACTORY_DEPLOY_BLOCK, latestBlock);
-          createdBlock = events[0]?.blockNumber ?? null;
+          createdBlock = await findCreationBlock(factory, address, YIELD_FACTORY_DEPLOY_BLOCK, latestBlock);
         }
       }
       saveAgent({ address, owner, name, mode: "Yield", kind: "yield-v2", dailyLimit: String(dailyLimit), createdBlock, createdAt: existing?.createdAt || null });

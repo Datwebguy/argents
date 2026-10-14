@@ -77,7 +77,7 @@
               <div class="metric-foot"><span class="metric-muted">Recovered from Arc when connected</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-top"><span class="metric-label">YIELD RESULT</span><span class="metric-icon">↗</span></div>
+              <div class="metric-top"><span class="metric-label">NET RESULT</span><span class="metric-icon">↗</span></div>
               <div class="metric-value" id="yield-result">—<span class="metric-unit"> USDC</span></div>
               <div class="metric-foot"><span class="metric-muted" id="yield-result-foot">Connect to read Morpho positions</span></div>
             </article>
@@ -139,7 +139,7 @@
               <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover Yield agents</h2></div>
               <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
             </div>
-            <p class="discovery-intro">Explore agents created by the Argents Yield factory. Ranked by current USDC value in each agent vault.</p>
+            <p class="discovery-intro">Explore agents created by the Argents Yield factory. Ranked by current USDC value in each agent vault. Net results can include direct token transfers.</p>
             <div class="discovery-status" id="discovery-status" role="status">Reading public agent activity from Arc…</div>
             <div class="discovery-list" id="discovery-list"></div>
           </section>
@@ -173,7 +173,7 @@
             </article>
           </section>
 
-          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
+          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="SECURITY.md" target="_blank" rel="noreferrer">Security notes ↗</a><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
         </div>
       </main>
     </div>
@@ -220,7 +220,7 @@
       </form>
     </dialog>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+    <script src="vendor/ethers.umd.min.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

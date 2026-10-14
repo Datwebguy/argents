@@ -23,10 +23,10 @@
 - All value movement occurs in USDC on Arc
 - Daily withdrawal caps are enforced by the vault contracts
 - History is read from on-chain vault events; no external indexer is used
-- Strategy earnings are estimated from current value plus cumulative withdrawals minus deposits; they may be negative
+- The displayed net result is current value plus cumulative withdrawals minus deposits. It may be negative or include direct transfers into the vault, so it is not a protocol-only yield figure.
 
 ## Current limits
 
 - Strategy actions require an owner wallet signature; no autonomous runtime is running
 - Signals and Treasury remain prototypes; public ranking currently covers Yield V2 agents only
-- Current Yield V2 agent has no funded position
+- The first Yield V2 agent has completed funding, Morpho deployment, and a partial withdrawal on Arc Mainnet

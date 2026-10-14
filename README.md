@@ -14,7 +14,7 @@ Argents creates owner-controlled USDC agent vaults on Arc. Yield agents can plac
 - Legacy factory and vault: [`0xfC887cB480f257e8a76e823de9066b5B528a66a9`](https://explorer.arc.io/address/0xfC887cB480f257e8a76e823de9066b5B528a66a9), [`0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F`](https://explorer.arc.io/address/0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F)
 - Deployment record: [deployments.arc-mainnet.json](deployments.arc-mainnet.json)
 
-The first Yield V2 agent is empty. No USDC has been invested through Argents yet, so the live deployment does not demonstrate earned yield.
+The first Yield V2 agent completed a live funding, Morpho deployment, and withdrawal round trip. At the last on-chain check, it had received 0.02 USDC, withdrawn 0.01 USDC, and retained 0.01 USDC in Morpho shares. This demonstrates capital movement; it does not demonstrate earned yield.
 
 ## Current build
 
@@ -63,6 +63,9 @@ On reconnect, the app reloads agents from the shared factories and reads their b
 - No hosted agent runtime; owner-signed actions operate the vault
 - Public discovery is a client-side Arc log scan; it has no hosted indexer and may slow as the number of agents grows
 - Smart contracts have not received an independent security audit
+- The displayed net result is current value plus cumulative withdrawals minus deposits; direct USDC or Morpho share transfers into a vault can affect it
+
+See [SECURITY.md](SECURITY.md) for the internal contract review and residual risks.
 
 ## Hackathon
 
