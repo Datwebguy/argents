@@ -1,40 +1,32 @@
-# Argents — Submission Working Notes
+# Argents — Submission Readiness Notes
 
-Use this file as an accuracy checklist while preparing the DoraHacks entry. It is not a finished submission response; update it from the deployed build and write the final description in your own words.
+This file tracks verified facts and remaining checks. It is not a paste-ready hackathon submission; write the final project description in the team's own words.
 
-## Current implementation facts
+## Links
 
-- The browser app connects to Arc Mainnet and reads the connected wallet's native USDC balance and block height.
-- The connected wallet can deploy an Argents factory and create a separate smart-contract vault for each agent.
-- Vaults accept USDC deposits after the owner approves the token transfer.
-- Vault withdrawals go to the owner wallet and are checked against the configured daily spend limit.
-- The owner can update the daily limit on chain; deposit, withdrawal, and limit-change events link to Arc Explorer.
-- Each create, approve, deposit, and withdrawal transaction is signed by the user in their wallet.
+- Live app: https://argents-live.funolive9.chatgpt.site
+- Public repository: https://github.com/Datwebguy/argents
+- Builder profile: https://github.com/Datwebguy
+- Arc factory: https://explorer.arc.io/address/0xfC887cB480f257e8a76e823de9066b5B528a66a9
+- First vault: https://explorer.arc.io/address/0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F
 
-## Not implemented yet
+## Verified implementation
 
-- Yield source integration or automated capital deployment
-- Agent runtime or autonomous signing
-- Paid Signals delivery
-- Public agent discovery, ranking, or cross-user indexing
+- Shared factory and first Argents Yield vault deployed on Arc Mainnet.
+- The vault owner, name, 100 USDC daily withdrawal cap, and zero vault balance were read from chain.
+- The public app and its JavaScript return HTTP 200.
+- The app connects to Arc wallets, creates dedicated vaults, and includes funding, withdrawal, rules, and activity interfaces.
 
-## Arc usage to describe accurately
+## Limitations to state accurately
 
-- Arc Mainnet hosts the factory and individual agent vault contracts.
-- Native USDC pays Arc transaction fees; ERC-20 USDC is used for vault deposits and withdrawals.
-- Network: Arc Mainnet, chain ID `5042`
-- USDC contract: `0x3600000000000000000000000000000000000000`
+- No yield strategy or Earn Kit / Morpho integration is connected.
+- Signals and Treasury are prototype mode labels, not operational services.
+- No autonomous agent runtime or cross-user public discovery/indexer exists.
+- Browser wallet funding and withdrawal have not been end-to-end exercised.
+- The contracts have not received an independent security audit.
 
-## Links to fill after publication
+## Before submitting
 
-- Live deployment: `[DEPLOYMENT_URL]`
-- Public repository: `[REPO_URL]`
-- Example factory / vault / transaction: `[CONTRACT_LINKS]`
-- Public builder profile: `[BUILDER_PROFILE_URL]`
-
-## Final checks
-
-- Confirm app is live and its Arc Mainnet transactions work.
-- Confirm the repo is public and contains the exact deployed source.
-- Include an explorer link to a successful agent creation and, if available, funding transaction.
-- Do not describe Yield, Signals, Treasury automation, or third-party integrations as implemented until they work in the live build.
+- Run the live create, deposit, withdrawal, and activity flow in a browser wallet.
+- Confirm the public app, source repository, and builder profile are linked in the hackathon entry.
+- Keep the project description limited to the verified implementation above.
