@@ -277,7 +277,8 @@
           cache.lastBlock = YIELD_FACTORY_DEPLOY_BLOCK - 1;
           cache.records = [];
         }
-        for (let from = Math.max(cache.lastBlock + 1, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
+        // Re-read a small overlap so a temporarily delayed RPC log cannot be missed forever.
+        for (let from = Math.max(cache.lastBlock - 63, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
           const to = Math.min(from + DISCOVERY_SCAN_STEP - 1, latest);
           status.textContent = `Reading Yield factory events · Arc blocks ${from.toLocaleString("en-US")}–${to.toLocaleString("en-US")}`;
           const logs = await publicProvider.getLogs({ address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
