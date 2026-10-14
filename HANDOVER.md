@@ -33,7 +33,7 @@ The following are mirrors and must be kept in sync after source edits:
 - `C:\Users\hflhgjlhjh\Downloads\ARGENTS`
 - `C:\Users\hflhgjlhjh\Downloads\ARGENTS\public-repo`
 
-The GitHub remote is configured in `public-repo` as `github`. The last published public Git commits before the current UI refinement were `151a2b0` and `3f7d1a6`. Check `git status` before further work.
+The GitHub remote is configured in `public-repo` as `github`. The dedicated Signals workspace and this handover were published in commit `d3a7008`. Check `git status` before further work.
 
 ## Arc deployments
 
@@ -63,7 +63,7 @@ The full transaction record is in `deployments.arc-mainnet.json` and `DEPLOYMENT
 
 The overview previously placed the full Signals marketplace below all dashboard content. The user asked for a clearer and more constructive layout because the tiny `publish offers and track orders` link was easy to miss.
 
-The in-progress change turns Signals into its own hash route:
+The current published change turns Signals into its own hash route:
 
 - `#signals` renders a dedicated page.
 - Sidebar has a visible **Signals** navigation item.
@@ -71,7 +71,7 @@ The in-progress change turns Signals into its own hash route:
 - The Signals page is split into three steps: browse reports, sell a report, then manage orders.
 - The overview no longer renders the full Signals marketplace.
 
-The involved files are `index.html`, `app.js`, and `styles.css`. These changes were not yet mirrored, committed, or published when this handover file was created. Run the checks and publish steps below.
+The involved files are `index.html`, `app.js`, and `styles.css`. They are mirrored, pushed, and live in Sites version 19. The next agent should retain this layout unless the user requests a different structure.
 
 ## Important implementation details
 
