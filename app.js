@@ -59,6 +59,15 @@
     }).format(amount);
   }
 
+  function formatPreciseUsdc(value) {
+    const amount = Number(value) / 1e6;
+    return new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 }).format(amount);
+  }
+
+  function formatSignedUsdc(value) {
+    return `${value < 0n ? "−" : value > 0n ? "+" : ""}${formatPreciseUsdc(value < 0n ? -value : value)} USDC`;
+  }
+
   function parseUsdc(value) {
     const [whole, fractional = ""] = String(value).split(".");
     if (!/^\d+$/.test(whole || "0") || !/^\d*$/.test(fractional) || fractional.length > 6) {
@@ -143,7 +152,22 @@
         <div class="agent-controls"><button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button><button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
         <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : "Legacy custody vault · No yield strategy"}</div>
       </div>`).join("");
-    if (window.ethereum && activeAccount && window.ethereum.request) refreshAgentBalances(agents);
+    const yieldAgents = agents.filter(isYieldV2);
+    $("#yield-positions").hidden = yieldAgents.length === 0;
+    $("#yield-positions-list").innerHTML = yieldAgents.map((agent) => `
+      <div class="yield-position-card" data-position-for="${escapeHtml(agent.address.toLowerCase())}">
+        <div class="yield-position-heading"><div><strong>${escapeHtml(agent.name)}</strong><small>Galaxy USDC · Morpho on Arc</small></div><a href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer">View vault ↗</a></div>
+        <div class="yield-position-grid">
+          <div><span>Current value</span><strong data-position="assets">Loading…</strong></div>
+          <div><span>Invested in Morpho</span><strong data-position="invested">Loading…</strong></div>
+          <div><span>Idle in agent</span><strong data-position="idle">Loading…</strong></div>
+          <div><span>Net result</span><strong data-position="result">Loading…</strong></div>
+        </div>
+        <p class="yield-position-note" data-position="basis">Reading deposits and withdrawals from Arc…</p>
+      </div>`).join("");
+    if (window.ethereum && activeAccount && window.ethereum.request) refreshAgentBalances(agents).catch(() => {
+      $("#yield-updated").textContent = "Could not read Arc positions. Refresh values to try again.";
+    });
   }
 
   async function loadArtifacts(contractName) {
@@ -186,22 +210,39 @@
   async function refreshAgentBalances(agents = visibleAgents()) {
     const browserProvider = provider();
     const abis = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault")]);
-    await Promise.allSettled(agents.map(async (agent) => {
+    const results = await Promise.allSettled(agents.map(async (agent) => {
       const vault = new window.ethers.Contract(agent.address, abis[isYieldV2(agent) ? 1 : 0].abi, browserProvider);
-      const balance = isYieldV2(agent) ? await vault.totalAssets() : await vault.balance();
+      let balance;
+      let result = null;
+      if (isYieldV2(agent)) {
+        const [idle, invested, deposited, withdrawn] = await Promise.all([
+          vault.balance(), vault.strategyAssets(), vault.totalDeposited(), vault.totalWithdrawn(),
+        ]);
+        balance = idle + invested;
+        result = balance + withdrawn - deposited;
+        const card = Array.from(document.querySelectorAll("[data-position-for]"))
+          .find((node) => node.dataset.positionFor === agent.address.toLowerCase());
+        if (card) {
+          card.querySelector('[data-position="assets"]').textContent = `${formatPreciseUsdc(balance)} USDC`;
+          card.querySelector('[data-position="invested"]').textContent = `${formatPreciseUsdc(invested)} USDC`;
+          card.querySelector('[data-position="idle"]').textContent = `${formatPreciseUsdc(idle)} USDC`;
+          const resultNode = card.querySelector('[data-position="result"]');
+          resultNode.textContent = formatSignedUsdc(result);
+          resultNode.classList.toggle("negative", result < 0n);
+          card.querySelector('[data-position="basis"]').textContent = `Deposited ${formatPreciseUsdc(deposited)} USDC · Withdrawn ${formatPreciseUsdc(withdrawn)} USDC · Result = current value + withdrawals − deposits`;
+        }
+      } else balance = await vault.balance();
       const element = document.querySelector(`[data-balance-for="${agent.address.toLowerCase()}"]`) ||
         Array.from(document.querySelectorAll("[data-balance-for]")).find((node) => node.dataset.balanceFor.toLowerCase() === agent.address.toLowerCase());
       if (element) element.textContent = `${formatUsdc(balance, 6)} USDC`;
+      return result;
     }));
     const yieldAgents = agents.filter(isYieldV2);
-    const results = await Promise.allSettled(yieldAgents.map(async (agent) => {
-      const vault = new window.ethers.Contract(agent.address, abis[1].abi, browserProvider);
-      const [assets, deposited, withdrawn] = await Promise.all([vault.totalAssets(), vault.totalDeposited(), vault.totalWithdrawn()]);
-      return assets + withdrawn - deposited;
-    }));
-    const result = results.reduce((sum, item) => item.status === "fulfilled" ? sum + item.value : sum, 0n);
-    $("#yield-result").innerHTML = `${result < 0n ? "−" : ""}${formatUsdc(result < 0n ? -result : result, 6)}<span class="metric-unit"> USDC</span>`;
-    $("#yield-result-foot").textContent = yieldAgents.length ? "Current value plus withdrawals minus deposits" : "Create a Morpho Yield agent to track results";
+    const failures = results.filter((item, index) => isYieldV2(agents[index]) && item.status === "rejected");
+    const result = results.reduce((sum, item) => item.status === "fulfilled" && item.value !== null ? sum + item.value : sum, 0n);
+    $("#yield-result").innerHTML = failures.length ? `—<span class="metric-unit"> USDC</span>` : `${result < 0n ? "−" : ""}${formatPreciseUsdc(result < 0n ? -result : result)}<span class="metric-unit"> USDC</span>`;
+    $("#yield-result-foot").textContent = failures.length ? "Unable to read every Yield position; refresh again" : yieldAgents.length ? "Current value plus withdrawals minus deposits" : "Create a Morpho Yield agent to track results";
+    $("#yield-updated").textContent = failures.length ? "Some positions could not be read from Arc. Refresh values to try again." : `Values read from Arc · Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 
   async function refreshActivity(agents = visibleAgents()) {
@@ -680,6 +721,15 @@
   $("#new-agent-button").addEventListener("click", () => openAgentDialog());
   $("#empty-create").addEventListener("click", () => openAgentDialog());
   $("#view-agents").addEventListener("click", () => $("#agents").scrollIntoView({ behavior: "smooth" }));
+  $("#yield-refresh").addEventListener("click", () => {
+    $("#yield-updated").textContent = "Refreshing positions from Arc…";
+    refreshAgentBalances().catch(() => {
+      $("#yield-updated").textContent = "Could not read Arc positions. Check your connection and try again.";
+    });
+  });
+  setInterval(() => {
+    if (activeAccount && document.visibilityState === "visible") refreshAgentBalances().catch(() => {});
+  }, 30000);
   document.querySelectorAll("[data-create-mode]").forEach((button) => {
     button.addEventListener("click", () => openAgentDialog(button.dataset.createMode));
   });

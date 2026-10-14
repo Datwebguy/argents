@@ -22,7 +22,7 @@ The first Yield V2 agent is empty. No USDC has been invested through Argents yet
 - Create a dedicated vault contract for each agent through the shared Yield or legacy factory.
 - Fund a vault with USDC after approving the transfer.
 - Deploy idle Yield agent USDC to Galaxy USDC on Morpho. The agent vault owns the strategy shares.
-- View idle assets, invested assets, total value, and the position result derived from on-chain amounts.
+- Follow each agent in the Yield positions section: idle USDC, USDC invested in Morpho, current value, cumulative deposits and withdrawals, and net result. Values refresh every 30 seconds while the page is visible, and users can refresh them manually.
 - Withdraw USDC to the connected owner wallet, subject to the vault's daily limit. Yield withdrawals recall strategy funds when the Morpho vault has liquidity.
 - Change a vault's daily limit on chain and review deposit, withdrawal, and limit events with Arc Explorer links.
 - Verify wallet and agent vault addresses through Arc Explorer.

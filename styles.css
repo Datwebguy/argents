@@ -19,6 +19,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { min-width: 320px; scroll-behavior: smooth; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
@@ -145,6 +146,24 @@ h1 span { color: var(--lime); }
 .activity-foot { display: flex; align-items: center; gap: 7px; padding: 11px 18px; border-top: 1px solid var(--border-soft); color: #829087; font: 9px var(--mono); }
 .activity-live-dot { width: 5px; height: 5px; }
 
+.yield-panel { margin-bottom: 17px; }
+.yield-positions-list { display: grid; gap: 12px; padding: 16px 20px; }
+.yield-position-card { padding: 15px; border: 1px solid #35463a; border-radius: 7px; background: #121b16; }
+.yield-position-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.yield-position-heading strong, .yield-position-heading small { display: block; }
+.yield-position-heading strong { font: 600 13px var(--display); }
+.yield-position-heading small { margin-top: 4px; color: #89998b; font-size: 10px; }
+.yield-position-heading a { color: var(--lime); font-size: 10px; white-space: nowrap; }
+.yield-position-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.yield-position-grid > div { min-width: 0; }
+.yield-position-grid span, .yield-position-grid strong { display: block; }
+.yield-position-grid span { color: #839287; font: 9px var(--mono); }
+.yield-position-grid strong { overflow-wrap: anywhere; margin-top: 6px; color: #eff3e8; font: 500 12px var(--mono); }
+.yield-position-grid [data-position="result"] { color: var(--lime); }
+.yield-position-grid [data-position="result"].negative { color: #eaa79b; }
+.yield-position-note { margin: 16px 0 0; padding-top: 11px; border-top: 1px solid #29392e; color: #89998b; font-size: 10px; line-height: 1.5; }
+.yield-panel-foot { padding: 0 20px 15px; color: #819087; font: 9px var(--mono); }
+
 .bottom-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(275px, .85fr); gap: 17px; }
 .mode-panel { min-height: 259px; }
 .compact-heading { min-height: 76px; border-bottom: 0; padding-bottom: 8px; }
@@ -260,6 +279,7 @@ h1 span { color: var(--lime); }
   .content-grid, .bottom-grid { grid-template-columns: minmax(0, 1fr); }
   .activity-panel { min-height: 260px; }
   .activity-body { min-height: 165px; }
+  .yield-position-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 580px) {
   .sidebar { width: 54px; padding-inline: 5px; }
@@ -289,4 +309,6 @@ h1 span { color: var(--lime); }
   .agent-row { gap: 8px; }
   .agent-controls { flex-basis: 100%; margin-left: 42px; }
   .agent-balance { margin-left: auto; }
+  .yield-positions-list { padding: 12px; }
+  .yield-position-card { padding: 12px; }
 }

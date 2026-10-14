@@ -23,6 +23,7 @@
         <nav class="primary-nav" aria-label="Main navigation">
           <a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Overview</a>
           <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
+          <a class="nav-link" href="#yield-positions"><span class="nav-icon">↗</span>Yield positions</a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
           <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Arc network</a>
         </nav>
@@ -122,6 +123,15 @@
               </div>
               <div class="activity-foot"><span class="activity-live-dot"></span> Arc Mainnet · chain 5042</div>
             </article>
+          </section>
+
+          <section class="panel yield-panel" id="yield-positions" hidden aria-labelledby="yield-positions-title">
+            <div class="panel-heading">
+              <div><div class="section-kicker">LIVE ON ARC</div><h2 id="yield-positions-title">Yield positions</h2></div>
+              <button class="text-button" id="yield-refresh" type="button">Refresh values <span>↻</span></button>
+            </div>
+            <div class="yield-positions-list" id="yield-positions-list"></div>
+            <div class="yield-panel-foot" id="yield-updated">Values read from your agent vaults on Arc.</div>
           </section>
 
           <section class="bottom-grid">
