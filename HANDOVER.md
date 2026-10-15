@@ -77,7 +77,7 @@ The involved files are `index.html`, `app.js`, and `styles.css`. They are mirror
 
 After reviewing the Arc Microgrants brief, the product direction is to make the Yield mode an actual rules-based onchain agent rather than another manual dashboard flow.
 
-`contracts/ArgentsAutopilotYield.sol` and `contracts/deploy-autopilot-yield.cjs` are compiled locally but are not deployed or committed yet. The contract does the following:
+`contracts/ArgentsAutopilotYield.sol` and `contracts/deploy-autopilot-yield.cjs` are compiled and present in the working source, but the factory is not deployed. The contract does the following:
 
 - The owner configures a fixed strategy allocation in basis points and a daily withdrawal cap.
 - When the owner funds the vault, it automatically invests enough idle USDC into its immutable Morpho Galaxy USDC strategy to reach that allocation.
