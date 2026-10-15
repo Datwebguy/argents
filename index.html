@@ -1,8 +1,8 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#101715" />
     <meta name="description" content="Create and monitor USDC agents on Arc." />
     <title>Argents — USDC agents on Arc</title>
@@ -14,6 +14,7 @@
   </head>
   <body>
     <div class="app-shell">
+      <!-- Desktop Sidebar -->
       <aside class="sidebar">
         <a class="brand" href="#overview" aria-label="Argents home">
           <span class="brand-mark"><span></span><span></span><span></span></span>
@@ -24,7 +25,7 @@
         <nav class="primary-nav" aria-label="Main navigation">
           <a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Overview</a>
           <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
-          <a class="nav-link" href="#yield-positions"><span class="nav-icon">↗</span>Yield positions</a>
+          <a class="nav-link" href="#yield"><span class="nav-icon">↗</span>Yield positions</a>
           <a class="nav-link" href="#signals"><span class="nav-icon">⌁</span>Signals</a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
           <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover</a>
@@ -34,7 +35,7 @@
         <div class="sidebar-bottom">
           <div class="network-card">
             <span class="network-dot"></span>
-            <div><strong>Arc Network</strong><small id="network-caption">Connected</small></div>
+            <div><strong>Arc Network</strong><small id="network-caption">USDC native</small></div>
             <span class="network-chain">Live</span>
           </div>
           <a class="docs-link" href="https://docs.arc.io/arc/references/connect-to-arc.md" target="_blank" rel="noreferrer"><span>↗</span> Arc documentation</a>
@@ -42,8 +43,13 @@
         </div>
       </aside>
 
-      <main class="main-content" id="overview">
+      <!-- Main Content Container -->
+      <main class="main-content">
         <header class="topbar">
+          <a class="mobile-brand" href="#overview" aria-label="Argents mobile home">
+            <span class="brand-mark"><span></span><span></span><span></span></span>
+            <span>argents<span class="brand-period">.</span></span>
+          </a>
           <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong>Overview</strong></div>
           <div class="top-actions">
             <div class="header-wallet-group">
@@ -59,241 +65,315 @@
         </header>
 
         <div class="page-wrap">
-          <section class="welcome-row">
-            <div>
-              <div class="eyebrow"><span class="eyebrow-line"></span> YOUR AGENT TREASURY</div>
-              <h1>Capital with <span>agency.</span></h1>
-              <p class="welcome-copy">Create USDC agents, set their boundaries, and follow every move on Arc.</p>
-            </div>
-            <button class="button-primary" id="new-agent-button"><span>＋</span> Create agent</button>
-          </section>
+          <!-- VIEW 1: OVERVIEW -->
+          <div class="view-page" id="view-overview">
+            <section class="welcome-row">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> YOUR AGENT TREASURY</div>
+                <h1>Capital with <span>agency.</span></h1>
+                <p class="welcome-copy">Create USDC agents, set their boundaries, and follow every move on Arc.</p>
+              </div>
+              <button class="button-primary" id="new-agent-button"><span>＋</span> Create agent</button>
+            </section>
 
-          <section class="metrics-grid" aria-label="Treasury summary">
-            <article class="metric-card balance-card">
-              <div class="metric-top"><span class="metric-label">CONNECTED WALLET</span><span class="metric-icon">◉</span></div>
-              <div class="metric-value" id="wallet-balance">—<span class="metric-unit"> USDC</span></div>
-              <div class="metric-foot"><span class="status-dash"></span><span id="wallet-foot">Connect to read your live Arc balance</span></div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-top"><span class="metric-label">AGENTS</span><span class="metric-icon">◈</span></div>
-              <div class="metric-value" id="metric-agents">0<span class="metric-unit"> agents</span></div>
-              <div class="metric-foot"><span class="metric-muted">Recovered from Arc when connected</span></div>
-            </article>
-            <article class="metric-card">
-              <div class="metric-top"><span class="metric-label">NET RESULT</span><span class="metric-icon">↗</span></div>
-              <div class="metric-value" id="yield-result">—<span class="metric-unit"> USDC</span></div>
-              <div class="metric-foot"><span class="metric-muted" id="yield-result-foot">Connect to read Morpho positions</span></div>
-            </article>
-            <article class="metric-card chain-card">
-              <div class="metric-top"><span class="metric-label">NETWORK STATUS</span><span class="metric-icon">⌁</span></div>
-              <div class="metric-value chain-value"><span class="chain-live-dot"></span><span id="chain-status">Waiting for wallet</span></div>
-              <div class="metric-foot"><span class="metric-muted">Arc Network · Online</span></div>
-            </article>
-          </section>
+            <section class="metrics-grid" aria-label="Treasury summary">
+              <article class="metric-card balance-card">
+                <div class="metric-top"><span class="metric-label">CONNECTED WALLET</span><span class="metric-icon">◉</span></div>
+                <div class="metric-value" id="wallet-balance">—<span class="metric-unit"> USDC</span></div>
+                <div class="metric-foot"><span class="status-dash"></span><span id="wallet-foot">Connect to read your live Arc balance</span></div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">AGENTS</span><span class="metric-icon">◈</span></div>
+                <div class="metric-value" id="metric-agents">0<span class="metric-unit"> agents</span></div>
+                <div class="metric-foot"><span class="metric-muted">Recovered from Arc when connected</span></div>
+              </article>
+              <article class="metric-card">
+                <div class="metric-top"><span class="metric-label">NET RESULT</span><span class="metric-icon">↗</span></div>
+                <div class="metric-value" id="yield-result">—<span class="metric-unit"> USDC</span></div>
+                <div class="metric-foot"><span class="metric-muted" id="yield-result-foot">Connect to read Morpho positions</span></div>
+              </article>
+              <article class="metric-card chain-card">
+                <div class="metric-top"><span class="metric-label">NETWORK STATUS</span><span class="metric-icon">⌁</span></div>
+                <div class="metric-value chain-value"><span class="chain-live-dot"></span><span id="chain-status">Waiting for wallet</span></div>
+                <div class="metric-foot"><span class="metric-muted">Arc Network · Online</span></div>
+              </article>
+            </section>
 
-          <section class="content-grid">
-            <article class="panel agents-panel" id="agents">
+            <section class="content-grid">
+              <article class="panel agents-panel">
+                <div class="panel-heading">
+                  <div><div class="section-kicker">YOUR CREW</div><h2>Active agents <span class="heading-count" id="heading-agent-count">0</span></h2></div>
+                  <button class="text-button" id="view-agents" type="button">View all <span>↗</span></button>
+                </div>
+                <div class="agents-empty" id="agents-empty">
+                  <div class="empty-graphic"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="empty-diamond">◇</div><div class="orbit-dot"></div></div>
+                  <h3>Your first agent starts here</h3>
+                  <p>Give it a name, choose a mode, and define what it can do.</p>
+                  <button class="button-outline" id="empty-create" type="button"><span>＋</span> Create your first agent</button>
+                </div>
+                <div class="agent-list" id="agent-list" hidden></div>
+              </article>
+
+              <article class="panel activity-panel">
+                <div class="panel-heading">
+                  <div><div class="section-kicker">ARC NETWORK</div><h2>Wallet connection</h2></div>
+                  <a class="icon-button" href="https://explorer.arc.io" target="_blank" rel="noreferrer" aria-label="Open Arc explorer">↗</a>
+                </div>
+                <div class="activity-body" id="activity-body">
+                  <div class="activity-empty-icon">⌁</div>
+                  <p>Connect your wallet to manage your agents and view live balances.</p>
+                  <button class="inline-link" id="activity-connect" type="button">Connect wallet <span>→</span></button>
+                </div>
+                <div class="wallet-controls" id="wallet-controls" hidden>
+                  <div class="wallet-address-label">CONNECTED ADDRESS</div>
+                  <code class="wallet-address" id="wallet-address"></code>
+                  <div class="wallet-action-row">
+                    <button class="wallet-action-button" id="copy-address" type="button">Copy address</button>
+                    <button class="wallet-action-button wallet-disconnect-button" id="disconnect-wallet" type="button">Disconnect</button>
+                  </div>
+                </div>
+                <div class="activity-foot"><span class="activity-live-dot"></span> Arc Network · Operational</div>
+              </article>
+            </section>
+
+            <section class="bottom-grid">
+              <article class="panel mode-panel">
+                <div class="panel-heading compact-heading">
+                  <div><div class="section-kicker">CHOOSE YOUR STRATEGY</div><h2>Agent modes</h2></div>
+                  <span class="preview-tag">EARLY ACCESS</span>
+                </div>
+                <div class="mode-list">
+                  <button class="mode-item mode-yield" data-create-mode="Yield" type="button">
+                    <span class="mode-symbol yield-symbol">↗</span><span class="mode-info"><strong>Yield</strong><small>Deploy capital into yield sources</small></span><span class="mode-state">PRIMARY</span><span class="mode-arrow">→</span>
+                  </button>
+                  <button class="mode-item" data-create-mode="Signals" type="button">
+                    <span class="mode-symbol signals-symbol">⌁</span><span class="mode-info"><strong>Signals</strong><small>Deliver paid alerts and reports</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
+                  </button>
+                  <button class="mode-item" data-create-mode="Treasury" type="button">
+                    <span class="mode-symbol treasury-symbol">▤</span><span class="mode-info"><strong>Treasury</strong><small>Manage inflows and controlled spend</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
+                  </button>
+                </div>
+              </article>
+
+              <article class="arc-card" id="arc-info">
+                <div class="arc-card-orb orb-a"></div><div class="arc-card-orb orb-b"></div>
+                <div class="arc-label"><span class="arc-mark">a</span> BUILT ON ARC</div>
+                <h2>One stablecoin.<br />One agent economy.</h2>
+                <p>USDC powers both value transfer and seamless transactions on Arc.</p>
+                <a href="https://arc.io" target="_blank" rel="noreferrer" class="arc-link">Explore Arc <span>↗</span></a>
+                <div class="arc-card-number">ARC</div>
+              </article>
+            </section>
+          </div>
+
+          <!-- VIEW 2: MY AGENTS -->
+          <div class="view-page" id="view-agents" hidden>
+            <section class="panel page-full-panel" id="agents">
               <div class="panel-heading">
-                <div><div class="section-kicker">YOUR CREW</div><h2>Active agents <span class="heading-count" id="heading-agent-count">0</span></h2></div>
-                <button class="text-button" id="view-agents">View all <span>↗</span></button>
+                <div><div class="section-kicker">PORTFOLIO</div><h2>My agents <span class="heading-count" id="view-agents-count">0</span></h2></div>
+                <button class="button-primary header-action-btn" id="agents-view-create" type="button"><span>＋</span> Create agent</button>
               </div>
-              <div class="agents-empty" id="agents-empty">
-                <div class="empty-graphic"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="empty-diamond">◇</div><div class="orbit-dot"></div></div>
-                <h3>Your first agent starts here</h3>
-                <p>Give it a name, choose a mode, and define what it can do.</p>
-                <button class="button-outline" id="empty-create"><span>＋</span> Create your first agent</button>
+              <div class="panel-body-padded">
+                <div class="empty-agents" id="agents-page-empty">
+                  <div class="empty-graphic">
+                    <div class="empty-ring"></div>
+                    <div class="empty-core"></div>
+                    <div class="empty-orbit"></div>
+                  </div>
+                  <h3>Your first agent starts here</h3>
+                  <p>Give it a name, choose a mode, and define what it can spend in a day. It deploys to Arc as its own contract.</p>
+                  <button class="button-primary" id="agents-page-empty-create" type="button"><span>＋</span> Deploy an agent</button>
+                </div>
+                <div class="agent-list" id="agents-page-list"></div>
               </div>
-              <div class="agent-list" id="agent-list" hidden></div>
-            </article>
+            </section>
+          </div>
 
-            <article class="panel activity-panel" id="activity">
+          <!-- VIEW 3: YIELD POSITIONS -->
+          <div class="view-page" id="view-yield" hidden>
+            <section class="panel yield-panel" id="yield-positions" aria-labelledby="yield-positions-title">
               <div class="panel-heading">
-                <div><div class="section-kicker">ARC NETWORK</div><h2>Wallet connection</h2></div>
-                <a class="icon-button" href="https://explorer.arc.io" target="_blank" rel="noreferrer" aria-label="Open Arc explorer">↗</a>
+                <div><div class="section-kicker">MORPHO GALAXY STRATEGY</div><h2 id="yield-positions-title">Yield positions</h2></div>
+                <button class="text-button" id="yield-refresh" type="button">Refresh values <span>↻</span></button>
               </div>
-              <div class="activity-body" id="activity-body">
-                <div class="activity-empty-icon">⌁</div>
-                <p>Connect your wallet to manage your agents and view live balances.</p>
-                <button class="inline-link" id="activity-connect">Connect wallet <span>→</span></button>
+              <div class="panel-body-padded">
+                <div class="empty-agents" id="yield-empty">
+                  <div class="empty-graphic">
+                    <div class="empty-ring"></div>
+                    <div class="empty-core"></div>
+                    <div class="empty-orbit"></div>
+                  </div>
+                  <h3>No active yield positions</h3>
+                  <p>Deploy a Yield agent to put idle USDC to work in the Morpho Galaxy strategy on Arc with daily withdrawal guardrails.</p>
+                  <button class="button-primary" id="yield-empty-create" type="button"><span>＋</span> Deploy Yield agent</button>
+                </div>
+                <div class="yield-positions-list" id="yield-positions-list"></div>
               </div>
-              <div class="wallet-controls" id="wallet-controls" hidden>
-                <div class="wallet-address-label">CONNECTED ADDRESS</div>
-                <code class="wallet-address" id="wallet-address"></code>
-                <div class="wallet-action-row">
-                  <button class="wallet-action-button" id="copy-address" type="button">Copy address</button>
-                  <button class="wallet-action-button wallet-disconnect-button" id="disconnect-wallet" type="button">Disconnect</button>
+              <div class="yield-panel-foot" id="yield-updated">Values read from your agent vaults on Arc.</div>
+            </section>
+          </div>
+
+          <!-- VIEW 4: SIGNALS MARKETPLACE -->
+          <div class="view-page" id="view-signals" hidden>
+            <section class="panel signals-panel" id="signals" aria-labelledby="signals-title">
+              <div class="panel-heading">
+                <div><div class="section-kicker">SIGNALS MODE</div><h2 id="signals-title">Paid reports on Arc</h2></div>
+                <button class="text-button" id="signals-refresh" type="button">Refresh <span>↻</span></button>
+              </div>
+              <p class="signals-intro">Signals agents sell reports or alerts for Arc USDC. Buyers pay the agent, then the publisher delivers a link. Both steps are recorded on Arc.</p>
+              <div class="signals-layout">
+                <div class="signals-browse">
+                  <div class="signals-column-title"><span>01</span><h3>Browse reports</h3></div>
+                  <div class="discovery-status" id="signals-status" role="status">Loading paid offers…</div>
+                  <div class="signal-list" id="signal-offers"></div>
+                </div>
+                <div class="signals-publish">
+                  <div class="signals-column-title"><span>02</span><h3>Sell a report</h3></div>
+                  <p>Create an offer from your Signals agent. The price is paid directly to that agent.</p>
+                  <button class="agent-action signals-create-agent" id="signals-create-agent" type="button">＋ Create a Signals agent</button>
+                  <form id="signal-offer-form" class="signal-offer-form">
+                    <label for="signal-vault">Your Signals agent</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
+                    <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
+                    <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
+                    <button class="button-primary" type="submit">Publish offer <span>→</span></button>
+                  </form>
                 </div>
               </div>
-              <div class="activity-foot"><span class="activity-live-dot"></span> Arc Network · Operational</div>
-            </article>
-          </section>
+              <div class="signals-orders-block"><div class="signals-column-title"><span>03</span><h3>Your orders</h3></div><div class="signal-list" id="signal-orders"></div></div>
+              <p class="signals-disclosure">Delivery is manual. Payments go directly to the publisher, and delivery links are recorded on Arc. Use access-controlled links for private content.</p>
+            </section>
+          </div>
 
-          <section class="panel yield-panel" id="yield-positions" hidden aria-labelledby="yield-positions-title">
-            <div class="panel-heading">
-              <div><div class="section-kicker">LIVE ON ARC</div><h2 id="yield-positions-title">Yield positions</h2></div>
-              <button class="text-button" id="yield-refresh" type="button">Refresh values <span>↻</span></button>
-            </div>
-            <div class="yield-positions-list" id="yield-positions-list"></div>
-            <div class="yield-panel-foot" id="yield-updated">Values read from your agent vaults on Arc.</div>
-          </section>
-
-          <section class="panel discovery-panel" id="discover" aria-labelledby="discovery-title">
-            <div class="panel-heading">
-              <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover agents</h2></div>
-              <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
-            </div>
-            <p class="discovery-intro">Explore public agents on Arc. Ranked by current USDC balance and performance.</p>
-            <div class="discovery-status" id="discovery-status" role="status">Loading public agents…</div>
-            <div class="discovery-list" id="discovery-list"></div>
-            <div class="discovery-status" id="mode-discovery-status" role="status">Loading Signals and Treasury agents…</div>
-            <div class="discovery-list mode-discovery-list" id="mode-discovery-list"></div>
-          </section>
-
-          <section class="panel signals-panel" id="signals" aria-labelledby="signals-title" hidden>
-            <div class="panel-heading">
-              <div><div class="section-kicker">SIGNALS MODE</div><h2 id="signals-title">Paid reports on Arc</h2></div>
-              <button class="text-button" id="signals-refresh" type="button">Refresh <span>↻</span></button>
-            </div>
-            <p class="signals-intro">Signals agents sell reports or alerts for Arc USDC. Buyers pay the agent, then the publisher delivers a link. Both steps are recorded on Arc.</p>
-            <div class="signals-layout">
-              <div class="signals-browse">
-                <div class="signals-column-title"><span>01</span><h3>Browse reports</h3></div>
-                <div class="discovery-status" id="signals-status" role="status">Loading paid offers…</div>
-                <div class="signal-list" id="signal-offers"></div>
+          <!-- VIEW 5: ACTIVITY TIMELINE -->
+          <div class="view-page" id="view-activity" hidden>
+            <section class="panel page-full-panel" id="activity">
+              <div class="panel-heading">
+                <div><div class="section-kicker">ON-CHAIN TIMELINE</div><h2>Activity history</h2></div>
+                <a class="text-button" href="https://explorer.arc.io" target="_blank" rel="noreferrer">Arc Explorer <span>↗</span></a>
               </div>
-              <div class="signals-publish">
-                <div class="signals-column-title"><span>02</span><h3>Sell a report</h3></div>
-                <p>Create an offer from your Signals agent. The price is paid directly to that agent.</p>
-                <button class="agent-action signals-create-agent" id="signals-create-agent" type="button">＋ Create a Signals agent</button>
-                <form id="signal-offer-form" class="signal-offer-form">
-                  <label for="signal-vault">Your Signals agent</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
-                  <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
-                  <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
-                  <button class="button-primary" type="submit">Publish offer <span>→</span></button>
-                </form>
+              <div class="panel-body-padded">
+                <div id="activity-full-list"></div>
               </div>
-            </div>
-            <div class="signals-orders-block"><div class="signals-column-title"><span>03</span><h3>Your orders</h3></div><div class="signal-list" id="signal-orders"></div></div>
-            <p class="signals-disclosure">Delivery is manual. Payments go directly to the publisher, and delivery links are recorded on Arc. Use access-controlled links for private content.</p>
-          </section>
+            </section>
+          </div>
 
-          <section class="panel security-panel" id="security" aria-labelledby="security-title">
-            <div class="panel-heading">
-              <div><div class="section-kicker">ON-CHAIN INVARIANTS</div><h2 id="security-title">Secure the agent flow</h2></div>
-              <span class="preview-tag security-tag">VERIFIED ON ARC</span>
-            </div>
-            <div class="security-body">
-              <div class="security-intro-box">
-                <p class="security-lead">Most "AI agent" apps today are just LLM prompts wired directly to hot wallets. If your agent hallucinates, catches a prompt injection, or hits an edge case, your entire treasury is gone in one block.</p>
-                <p class="security-sub">Argents enforces financial safety in <strong>smart contracts</strong>, not just system prompts. The human sets the immutable rules; the AI operates strictly within them.</p>
+          <!-- VIEW 6: DISCOVER -->
+          <div class="view-page" id="view-discover" hidden>
+            <section class="panel discovery-panel" id="discover" aria-labelledby="discovery-title">
+              <div class="panel-heading">
+                <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover agents</h2></div>
+                <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
               </div>
+              <p class="discovery-intro">Explore public agents on Arc. Ranked by current USDC balance and performance.</p>
+              <div class="discovery-status" id="discovery-status" role="status">Loading public agents…</div>
+              <div class="discovery-list" id="discovery-list"></div>
+              <div class="discovery-status" id="mode-discovery-status" role="status">Loading Signals and Treasury agents…</div>
+              <div class="discovery-list mode-discovery-list" id="mode-discovery-list"></div>
+            </section>
+          </div>
 
-              <div class="security-rules-grid">
-                <div class="security-rule-card">
-                  <div class="rule-num">01</div>
-                  <h3>Agents as Operators, Humans as Owners</h3>
-                  <p>An agent must never hold master keys. It operates within an isolated, owner-controlled smart vault where key admin powers (spending limits, emergency recovery) are strictly gated to the human owner.</p>
+          <!-- VIEW 7: SECURITY & GUARDRAILS (Clean, no developer test jargon) -->
+          <div class="view-page" id="view-security" hidden>
+            <section class="panel security-panel" id="security" aria-labelledby="security-title">
+              <div class="panel-heading">
+                <div><div class="section-kicker">ON-CHAIN SAFETY</div><h2 id="security-title">Security &amp; guardrails</h2></div>
+                <span class="preview-tag security-tag">VERIFIED ON ARC</span>
+              </div>
+              <div class="security-body">
+                <div class="security-intro-box">
+                  <p class="security-lead">Most AI agent applications are simple prompt loops tied to raw private keys. Argents enforces security directly in <strong>smart contracts</strong>, not just text prompts.</p>
+                  <p class="security-sub">You set the rules and maintain ownership; your agent operates safely within your specified boundaries.</p>
                 </div>
-                <div class="security-rule-card">
-                  <div class="rule-num">02</div>
-                  <h3>Daily Mathematical Guardrails</h3>
-                  <p>Never grant infinite token allowance. Outflows are capped by on-chain daily spend limits that reset automatically at midnight UTC. If an agent goes rogue, your 24-hour downside is strictly bounded.</p>
+
+                <div class="security-rules-grid">
+                  <div class="security-rule-card">
+                    <div class="rule-num">01</div>
+                    <h3>Humans as Owners, Agents as Operators</h3>
+                    <p>Your agent never holds master keys. It operates within an isolated smart vault where withdrawal limits and key controls require your authenticated owner approval.</p>
+                  </div>
+                  <div class="security-rule-card">
+                    <div class="rule-num">02</div>
+                    <h3>24-Hour Spending Limits</h3>
+                    <p>No infinite allowances. Daily outflows are strictly capped by on-chain math that resets at midnight UTC, ensuring your maximum downside is strictly bounded.</p>
+                  </div>
+                  <div class="security-rule-card">
+                    <div class="rule-num">03</div>
+                    <h3>Exact Minor-Unit Accounting</h3>
+                    <p>All token math is computed in integer base units (6 decimal places for native Arc USDC). Zero floating-point rounding errors.</p>
+                  </div>
+                  <div class="security-rule-card">
+                    <div class="rule-num">04</div>
+                    <h3>Separation of Idle vs. Deployed Capital</h3>
+                    <p>Idle cash is kept distinct from Morpho yield shares on-chain, ensuring liquidity recall is deterministic and transparent.</p>
+                  </div>
+                  <div class="security-rule-card">
+                    <div class="rule-num">05</div>
+                    <h3>On-Chain Events as Single Source of Truth</h3>
+                    <p>No private off-chain databases to crash or get out of sync. Every movement of funds is an immutable log on the Arc blockchain.</p>
+                  </div>
+                  <div class="security-rule-card">
+                    <div class="rule-num">06</div>
+                    <h3>Direct Trust-Minimized Settlement</h3>
+                    <p>In Signals mode, payments and delivery receipts are permanently recorded on Arc without middlemen.</p>
+                  </div>
+                  <div class="security-rule-card full-span-rule">
+                    <div class="rule-num">07</div>
+                    <h3>Zero Centralized API Keys</h3>
+                    <p>Argents has no server-side secrets or centralized database credentials. All reads use public Arc RPC nodes, and all actions are signed directly by your wallet.</p>
+                  </div>
                 </div>
-                <div class="security-rule-card">
-                  <div class="rule-num">03</div>
-                  <h3>Strict Integer Base-Unit Math</h3>
-                  <p>Financial calculations must never touch floating-point math. All amounts are computed in 6-decimal integer base units (1.00 USDC = 1,000,000 minor units). Zero rounding errors or drained dust.</p>
+
+                <div class="golden-rule-callout">
+                  <div class="callout-icon">⚖</div>
+                  <div class="callout-body">
+                    <strong>The Golden Rule of Autonomous Capital:</strong>
+                    <p>Never ask: <em>“Is my autonomous agent safe?”</em><br />Always ask: <strong>“What is the maximum mathematical loss this agent can cause in 24 hours if something goes wrong?”</strong></p>
+                    <small>With Argents, that limit is a hard number enforced by a verified smart contract on Arc.</small>
+                  </div>
                 </div>
-                <div class="security-rule-card">
-                  <div class="rule-num">04</div>
-                  <h3>Separation of Idle vs. Deployed Capital</h3>
-                  <p>Idle reserves are strictly partitioned from strategy capital (e.g. Morpho Galaxy USDC). Idle and invested shares are tracked on-chain so liquidity recall is deterministic.</p>
-                </div>
-                <div class="security-rule-card">
-                  <div class="rule-num">05</div>
-                  <h3>On-Chain Events as Sole Ledger Truth</h3>
-                  <p>Never rely on mutable off-chain databases. Every deposit, yield allocation, share recall, and transfer is an immutable EVM log on Arc. State is reconstructed directly from the chain.</p>
-                </div>
-                <div class="security-rule-card">
-                  <div class="rule-num">06</div>
-                  <h3>Trust-Minimized Signal Settlement</h3>
-                  <p>When agents sell data or reports, payment confirmation, delivery URI, and buyer receipt acknowledgment are permanently anchored on Arc. No reliance on off-chain payment verification.</p>
-                </div>
-                <div class="security-rule-card full-span-rule">
-                  <div class="rule-num">07</div>
-                  <h3>Zero API Keys in Client Builds</h3>
-                  <p>Argents runs with zero backend API keys, zero centralized database credentials, and zero private environment variables. All reads use public Arc RPC nodes, and all mutations require direct wallet signatures.</p>
+
+                <div class="security-proof-footer">
+                  <div class="proof-tag"><span class="proof-dot"></span> Real Capital Verified on Arc Mainnet</div>
+                  <a href="https://explorer.arc.io/address/0x9eac69A950a13B40BE06547bE833Df653FE32Db8" target="_blank" rel="noreferrer" class="proof-link">Inspect Yield Agent on Arc Explorer ↗</a>
                 </div>
               </div>
+            </section>
+          </div>
 
-              <div class="security-terminal">
-                <div class="terminal-bar">
-                  <span class="term-dot dot-red"></span>
-                  <span class="term-dot dot-yellow"></span>
-                  <span class="term-dot dot-green"></span>
-                  <span class="term-title">NOW TRY TO BREAK IT · AUTOMATED STRESS TESTS</span>
-                </div>
-                <div class="terminal-content">
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Single-transaction limit breach: withdraw &gt; daily cap</span> <span class="term-res">→ REVERTS (ExceedsDailyLimit)</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Cumulative daily drain: 10 valid transfers + 1 excess transfer</span> <span class="term-res">→ REVERTS on #11</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Unauthorized caller execution: non-owner withdrawal</span> <span class="term-res">→ REVERTS (OwnableUnauthorized)</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">DeFi liquidity stress: Morpho Galaxy USDC partial redemption</span> <span class="term-res">→ DETERMINISTIC SHARE RECALL</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Boundary fuzzing: 0.000001 USDC micro-dust, zero, negative</span> <span class="term-res">→ VALIDATED BASE UNITS</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Network concurrency: rapid repeated clicks &amp; RPC latency</span> <span class="term-res">→ ZERO DOUBLE-SPEND</span></div>
-                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Balance reconciliation: totalAssets() == idle + Morpho shares</span> <span class="term-res">→ 100% RECONCILED</span></div>
-                </div>
-              </div>
-
-              <div class="golden-rule-callout">
-                <div class="callout-icon">⚖</div>
-                <div class="callout-body">
-                  <strong>The Golden Rule of Autonomous Capital:</strong>
-                  <p>Don't ask: <em>“Is my autonomous agent safe?”</em><br />Ask: <strong>“What is the maximum mathematical loss this agent can cause in 24 hours if the AI completely loses its mind?”</strong></p>
-                  <small>If the answer isn't a hard number enforced by a smart contract, you aren't ready for mainnet.</small>
-                </div>
-              </div>
-
-              <div class="security-proof-footer">
-                <div class="proof-tag"><span class="proof-dot"></span> Real Capital Verified on Arc Mainnet (0.02 USDC in · 0.01 USDC Morpho · 0.01 USDC out)</div>
-                <a href="https://explorer.arc.io/address/0x9eac69A950a13B40BE06547bE833Df653FE32Db8" target="_blank" rel="noreferrer" class="proof-link">Verify Yield Agent on Arc Explorer ↗</a>
-              </div>
-            </div>
-          </section>
-
-          <section class="bottom-grid">
-            <article class="panel mode-panel">
-              <div class="panel-heading compact-heading">
-                <div><div class="section-kicker">CHOOSE YOUR STRATEGY</div><h2>Agent modes</h2></div>
-                <span class="preview-tag">EARLY ACCESS</span>
-              </div>
-              <div class="mode-list">
-                <button class="mode-item mode-yield" data-create-mode="Yield">
-                  <span class="mode-symbol yield-symbol">↗</span><span class="mode-info"><strong>Yield</strong><small>Deploy capital into yield sources</small></span><span class="mode-state">PRIMARY</span><span class="mode-arrow">→</span>
-                </button>
-                <button class="mode-item" data-create-mode="Signals">
-                  <span class="mode-symbol signals-symbol">⌁</span><span class="mode-info"><strong>Signals</strong><small>Deliver paid alerts and reports</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
-                </button>
-                <button class="mode-item" data-create-mode="Treasury">
-                  <span class="mode-symbol treasury-symbol">▤</span><span class="mode-info"><strong>Treasury</strong><small>Manage inflows and controlled spend</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
-                </button>
-              </div>
-            </article>
-
-            <article class="arc-card" id="arc-info">
-              <div class="arc-card-orb orb-a"></div><div class="arc-card-orb orb-b"></div>
-              <div class="arc-label"><span class="arc-mark">a</span> BUILT ON ARC</div>
-              <h2>One stablecoin.<br />One agent economy.</h2>
-              <p>USDC powers both value transfer and seamless transactions on Arc.</p>
-              <a href="https://arc.io" target="_blank" rel="noreferrer" class="arc-link">Explore Arc <span>↗</span></a>
-              <div class="arc-card-number">ARC</div>
-            </article>
-          </section>
-
-          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="#security">Security & guardrails ↗</a><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
+          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="#security">Security &amp; guardrails ↗</a><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
         </div>
       </main>
+
+      <!-- Mobile Bottom Navigation Bar (Visible only on mobile devices) -->
+      <nav class="mobile-nav-bar" aria-label="Mobile navigation">
+        <a class="mobile-nav-item active" href="#overview">
+          <span class="mob-icon">◫</span>
+          <span class="mob-label">Overview</span>
+        </a>
+        <a class="mobile-nav-item" href="#agents">
+          <span class="mob-icon">◈</span>
+          <span class="mob-label">Agents</span>
+        </a>
+        <a class="mobile-nav-item" href="#yield">
+          <span class="mob-icon">↗</span>
+          <span class="mob-label">Yield</span>
+        </a>
+        <a class="mobile-nav-item" href="#signals">
+          <span class="mob-icon">⌁</span>
+          <span class="mob-label">Signals</span>
+        </a>
+        <a class="mobile-nav-item" href="#discover">
+          <span class="mob-icon">⌕</span>
+          <span class="mob-label">Discover</span>
+        </a>
+        <a class="mobile-nav-item" href="#security">
+          <span class="mob-icon">🛡</span>
+          <span class="mob-label">Security</span>
+        </a>
+      </nav>
     </div>
 
+    <!-- Modals -->
     <dialog class="agent-dialog" id="agent-dialog" aria-labelledby="dialog-title">
       <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
       <div class="dialog-eyebrow"><span class="eyebrow-line"></span> NEW AGENT</div>
@@ -313,6 +393,7 @@
         <button class="button-primary dialog-submit" id="create-agent-submit" type="submit">Deploy agent <span>→</span></button>
       </form>
     </dialog>
+
     <dialog class="agent-dialog transaction-dialog" id="transaction-dialog" aria-labelledby="transaction-title">
       <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Close">×</button></form>
       <div class="dialog-eyebrow"><span class="eyebrow-line"></span> AGENT BALANCE</div>

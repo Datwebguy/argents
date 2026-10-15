@@ -110,6 +110,9 @@
 
   function disconnectFromApp(showMessage = true) {
     if (showMessage) localStorage.setItem(MANUAL_DISCONNECT_KEY, "1");
+    if (reownModal) {
+      reownModal.disconnect?.().catch(() => {});
+    }
     activeAccount = null;
     connectButton.classList.remove("connected");
     connectButton.disabled = false;
@@ -146,9 +149,15 @@
     $("#heading-agent-count").textContent = count;
     $("#metric-agents").innerHTML = `${count}<span class="metric-unit"> ${count === 1 ? "agent" : "agents"}</span>`;
     $("#agents-empty").hidden = count !== 0;
+    const pageEmpty = $("#agents-page-empty");
+    if (pageEmpty) pageEmpty.hidden = count !== 0;
     const list = $("#agent-list");
+    const pageList = $("#agents-page-list");
+    const viewCount = $("#view-agents-count");
+    if (viewCount) viewCount.textContent = count;
     list.hidden = count === 0;
-    list.innerHTML = agents.map((agent, index) => `
+    if (pageList) pageList.hidden = count === 0;
+    const renderedRows = agents.map((agent, index) => `
       <div class="agent-row" data-agent-index="${index}">
         <div class="agent-avatar">${escapeHtml(agent.name.trim().slice(0, 1).toUpperCase())}</div>
         <div class="agent-data"><strong>${escapeHtml(agent.name)}</strong><small>${isYieldV2(agent) ? "Morpho Yield" : escapeHtml(agent.mode || "Vault")} · Withdrawal cap ${escapeHtml(formatUsdc(BigInt(agent.dailyLimit), 6))} USDC/day</small></div>
@@ -158,9 +167,14 @@
         <div class="agent-controls">${agent.mode === "Signals" ? `<a class="agent-action agent-manage-link" href="#signals">Manage Signals →</a>` : ""}<button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
         <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Approved from your wallet` : agent.mode === "Signals" ? "Sell reports for USDC · Payments stay with this agent" : agent.mode === "Treasury" ? "Receives USDC directly · Transfers require your approval and respect your daily limit" : "Standard custody · Direct holdings"}</div>
       </div>`).join("");
+    list.innerHTML = renderedRows;
+    if (pageList) pageList.innerHTML = renderedRows;
     $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
     const yieldAgents = agents.filter(isYieldV2);
-    $("#yield-positions").hidden = yieldAgents.length === 0;
+    const yieldEmpty = $("#yield-empty");
+    if (yieldEmpty) yieldEmpty.hidden = yieldAgents.length !== 0;
+    const yieldList = $("#yield-positions-list");
+    if (yieldList) yieldList.hidden = yieldAgents.length === 0;
     $("#yield-positions-list").innerHTML = yieldAgents.map((agent) => `
       <div class="yield-position-card" data-position-for="${escapeHtml(agent.address.toLowerCase())}">
         <div class="yield-position-heading"><div><strong>${escapeHtml(agent.name)}</strong><small>Galaxy USDC · Morpho on Arc</small></div><a href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer">View vault ↗</a></div>
@@ -187,6 +201,81 @@
     return { abi, bytecode: `0x${bytecode}` };
   }
 
+  const REOWN_PROJECT_ID = "5e0237c8b46078873a253229145e1409";
+  let reownModal = null;
+
+  async function initReown() {
+    if (typeof window === "undefined" || reownModal) return;
+    try {
+      const { createAppKit } = await import("https://esm.sh/@reown/appkit@1.8.24");
+      const { EthersAdapter } = await import("https://esm.sh/@reown/appkit-adapter-ethers@1.8.24");
+
+      const arcNetwork = {
+        id: 5042,
+        name: "Arc Mainnet",
+        network: "arc",
+        nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+        rpcUrls: {
+          default: { http: ["https://rpc.mainnet.arc.io"] },
+          public: { http: ["https://rpc.mainnet.arc.io"] },
+        },
+        blockExplorers: {
+          default: { name: "Arc Explorer", url: "https://explorer.arc.io" },
+        },
+      };
+
+      reownModal = createAppKit({
+        adapters: [new EthersAdapter()],
+        networks: [arcNetwork],
+        defaultNetwork: arcNetwork,
+        metadata: {
+          name: "Argents",
+          description: "Owner-controlled USDC agents on Arc",
+          url: window.location.origin,
+          icons: [`${window.location.origin}/favicon.svg`],
+        },
+        projectId: REOWN_PROJECT_ID,
+        features: {
+          analytics: false,
+          email: false,
+          socials: false,
+        },
+        themeMode: "dark",
+        themeVariables: {
+          "--w3m-accent": "#d0f16d",
+          "--w3m-border-radius-master": "2px",
+        },
+      });
+      window.reownAppKit = reownModal;
+
+      const handleReownState = () => {
+        const addr = reownModal.getAddress?.();
+        if (addr && addr.toLowerCase() !== activeAccount?.toLowerCase()) {
+          activeAccount = addr;
+          localStorage.removeItem(MANUAL_DISCONNECT_KEY);
+          connectButton.classList.add("connected");
+          connectLabel.textContent = shorten(addr);
+          const p = reownModal.getProvider?.();
+          if (p) setupWalletListeners(p);
+          syncWallet(addr).catch(() => {});
+        } else if (!addr && activeAccount && localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") {
+          disconnectFromApp(false);
+        }
+      };
+
+      reownModal.subscribeState?.(handleReownState);
+      reownModal.subscribeEvents?.((event) => {
+        if (["CONNECT_SUCCESS", "MODAL_CLOSE", "DISCONNECT_SUCCESS"].includes(event?.data?.event)) {
+          handleReownState();
+        }
+      });
+
+      handleReownState();
+    } catch (err) {
+      console.warn("Reown AppKit initialization deferred or unavailable:", err);
+    }
+  }
+
   let eip6963Providers = [];
   if (typeof window !== "undefined") {
     window.addEventListener("eip6963:announceProvider", (event) => {
@@ -199,6 +288,10 @@
   }
 
   function getWallet() {
+    if (reownModal) {
+      const p = reownModal.getProvider?.();
+      if (p) return p;
+    }
     if (eip6963Providers.length > 0 && eip6963Providers[0].provider) {
       return eip6963Providers[0].provider;
     }
@@ -562,7 +655,7 @@
     }));
     const entries = eventGroups.flatMap((result) => result.status === "fulfilled" ? result.value : []);
     entries.sort((a, b) => b.blockNumber - a.blockNumber || b.index - a.index);
-    const container = $("#activity-body");
+    const container = $("#activity-body"); const fullList = $("#activity-full-list");
     if (!entries.length) {
       if (eventGroups.some((result) => result.status === "rejected")) {
         container.innerHTML = `<div class="activity-empty-icon">!</div><p>Could not load vault history from Arc. Reload the page or view the vault on Arc Explorer.</p>`;
@@ -573,7 +666,7 @@
         <a class="inline-link" href="https://explorer.arc.io/address/${activeAccount}" target="_blank" rel="noreferrer">View in explorer <span>↗</span></a>`;
       return;
     }
-    container.innerHTML = `<div class="onchain-activity-list">${entries.slice(0, 30).map((entry) => {
+    const renderedEntries = `<div class="onchain-activity-list">${entries.slice(0, 30).map((entry) => {
       const label = { deposit: "USDC deposited", inflow: "USDC received", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
       const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : `${["deposit", "inflow"].includes(entry.kind) ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
       return `<div class="onchain-activity-row">
@@ -583,6 +676,8 @@
         <a href="https://explorer.arc.io/tx/${entry.txHash}" target="_blank" rel="noreferrer" aria-label="Verify transaction on Arc Explorer">↗</a>
       </div>`;
     }).join("")}</div>`;
+    container.innerHTML = renderedEntries;
+    if (fullList) fullList.innerHTML = renderedEntries;
   }
 
   async function findCreationBlock(factory, address, deploymentBlock, latestBlock, eventName = "AgentCreated") {
@@ -732,6 +827,14 @@
   }
 
   async function connectWallet() {
+    if (reownModal) {
+      try {
+        await reownModal.open();
+        return true;
+      } catch (err) {
+        console.warn("Reown open failed, trying fallback:", err);
+      }
+    }
     let wallet = getWallet();
     if (!wallet) {
       // Give late-injecting extensions up to 400ms before giving up
@@ -1025,20 +1128,64 @@
     }
   }
 
+  const VIEW_MAP = {
+    overview: "view-overview",
+    agents: "view-agents",
+    "my-agents": "view-agents",
+    yield: "view-yield",
+    "yield-positions": "view-yield",
+    signals: "view-signals",
+    activity: "view-activity",
+    discover: "view-discover",
+    security: "view-security",
+  };
+
+  const VIEW_TITLES = {
+    overview: "Overview",
+    agents: "My agents",
+    "my-agents": "My agents",
+    yield: "Yield positions",
+    "yield-positions": "Yield positions",
+    signals: "Signals",
+    activity: "Activity",
+    discover: "Discover",
+    security: "Security",
+  };
+
   function syncView() {
-    const target = window.location.hash.slice(1) || "overview";
-    const isSignals = target === "signals";
-    document.body.classList.toggle("signals-view", isSignals);
-    $("#signals").hidden = !isSignals;
-    $(".breadcrumbs strong").textContent = isSignals ? "Signals" : (target === "security" ? "Security" : "Overview");
+    const rawTarget = window.location.hash.slice(1).toLowerCase() || "overview";
+    const target = VIEW_MAP[rawTarget] ? rawTarget : "overview";
+    const activeViewId = VIEW_MAP[target];
+
+    document.querySelectorAll(".view-page").forEach((page) => {
+      page.hidden = page.id !== activeViewId;
+    });
+
+    const title = VIEW_TITLES[target] || "Overview";
+    const breadcrumb = document.querySelector(".breadcrumbs strong");
+    if (breadcrumb) breadcrumb.textContent = title;
+
     document.querySelectorAll(".primary-nav .nav-link").forEach((link) => {
-      const active = link.getAttribute("href") === `#${target}`;
-      link.classList.toggle("active", active);
-      if (active) link.setAttribute("aria-current", "page");
+      const href = link.getAttribute("href")?.slice(1).toLowerCase();
+      const isActive = href === target ||
+        (target.startsWith("yield") && href?.startsWith("yield")) ||
+        (target.startsWith("agent") && href?.startsWith("agent"));
+      link.classList.toggle("active", isActive);
+      if (isActive) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
-    if (isSignals || target === "overview") window.scrollTo(0, 0);
-    else requestAnimationFrame(() => document.getElementById(target)?.scrollIntoView());
+
+    document.querySelectorAll(".mobile-nav-item").forEach((item) => {
+      const href = item.getAttribute("href")?.slice(1).toLowerCase();
+      const isActive = href === target ||
+        (target.startsWith("yield") && href?.startsWith("yield")) ||
+        (target.startsWith("agent") && href?.startsWith("agent"));
+      item.classList.toggle("active", isActive);
+      if (isActive) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
 
   window.addEventListener("hashchange", syncView);
@@ -1127,6 +1274,22 @@
 
   renderAgents();
   syncView();
+  initReown().catch(() => {});
+  $("#agents-page-list")?.addEventListener("click", (event) => {
+    const copyButton = event.target.closest("[data-copy-vault]");
+    if (copyButton) {
+      navigator.clipboard.writeText(copyButton.dataset.copyVault).then(() => showToast("Agent vault address copied. Send Arc USDC only.")).catch(() => showToast("Could not copy the vault address.", "error"));
+      return;
+    }
+    const button = event.target.closest("[data-action]");
+    if (!button) return;
+    const agent = visibleAgents()[Number(button.dataset.agentIndex)];
+    if (agent) openTransactionDialog(agent, button.dataset.action);
+  });
+  $("#agents-view-create")?.addEventListener("click", () => openAgentDialog());
+  $("#agents-page-empty-create")?.addEventListener("click", () => openAgentDialog());
+  $("#yield-empty-create")?.addEventListener("click", () => openAgentDialog("Yield"));
+  $("#view-agents")?.addEventListener("click", () => { window.location.hash = "#agents"; });
   refreshDiscovery().catch(() => {});
   refreshModeDiscovery().catch(() => {});
   refreshSignals().catch(() => {});
