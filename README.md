@@ -4,9 +4,9 @@
 
 <h1>Argents</h1>
 
-<h3>Owner-controlled USDC agents you can deploy, fund, and govern on Arc.</h3>
+<h3>Owner-controlled USDC agents that allocate, earn, settle, and operate on Arc.</h3>
 
-<p>Automate Morpho yield, sell paid research reports, and manage daily treasury operations with transparent on-chain guardrails.</p>
+<p>Deploy Yield Autopilot agents to Morpho, sell paid research reports, manage treasury operations, and rank public agents from live Arc data.</p>
 
 <a href="https://argents.vercel.app"><img alt="Open the Argents app" src="https://img.shields.io/badge/Open%20the%20app-Argents-d0f16d?style=for-the-badge&amp;labelColor=17251d" /></a>
 <a href="https://explorer.arc.io"><img alt="Arc Mainnet" src="https://img.shields.io/badge/Network-Arc%20Mainnet%20(5042)-e8f0e5?style=for-the-badge&amp;labelColor=17251d" /></a>
@@ -22,7 +22,7 @@
 
 Autonomous AI agents and financial automations often run into two extremes: either they operate as opaque black boxes holding raw private keys without safety limits, or they burden users with cross-token bridging and complex gas mechanics.
 
-**Argents connects capital and agent intent on Arc.** On Arc, USDC is both the native currency and the gas asset, enabling zero-friction, single-token operations. Every agent deployed on Argents is an isolated, owner-controlled on-chain smart vault protected by a strict daily spending limit. Whether putting idle treasury funds to work on Morpho, accepting direct payments for intelligence reports, or executing team disbursements, capital deployment requires explicit owner approval while staying bound by programmable guardrails.
+**Argents connects capital and agent intent on Arc.** On Arc, USDC is both the native currency and the gas asset, enabling single-token operations. Every Argents agent is an isolated, owner-controlled on-chain smart vault protected by a daily spending limit. Yield Autopilot turns an allocation rule into onchain execution: each vault deposit immediately restores the selected Morpho Galaxy USDC allocation, while the vault retains its own assets and the owner controls withdrawals.
 
 ### Built for
 
@@ -37,13 +37,13 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 | [**Yield Autopilot**](https://argents.vercel.app/#yield) | Select a Morpho Galaxy USDC allocation once. Every later deposit automatically restores that allocation; anyone may call maintenance, but only the owner can withdraw under the daily cap. |
 | [**Signals Marketplace**](https://argents.vercel.app/#signals) | Browse paid intelligence reports, purchase access via direct USDC transfers, deliver access URIs, and confirm buyer receipt on-chain. |
 | [**Treasury Mode**](https://argents.vercel.app/#treasury) | Receive native USDC deposits and send funds to designated Arc addresses, strictly bounded by a daily UTC withdrawal limit. |
-| [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Scan Arc factory events to discover public Yield, Signals, and Treasury agents, ranked live by vault balance and total value. |
+| [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Index the Yield and Yield Autopilot factories on Arc, then rank public agents by live idle USDC plus Morpho position value. |
 
 ### An agent action, from intent to proof
 
 1. **Deploy a dedicated vault.** The factory deploys an isolated, owner-controlled smart contract with a daily spending cap.
 2. **Fund the agent.** Approve and deposit native USDC into the vault on Arc Mainnet.
-3. **Set the operating rule.** Yield Autopilot applies its selected Morpho allocation whenever it receives a deposit; Signals and Treasury follow their respective owner-approved flows.
+3. **Set the operating rule.** Choose a Yield Autopilot allocation from 0–100%. Each deposit immediately applies that Morpho allocation, and a public restore action keeps the vault aligned with its rule.
 4. **Enforce on-chain guardrails.** The contract automatically checks the daily UTC withdrawal cap before any funds leave the vault.
 5. **Inspect the verified result.** Track state changes, event logs, and balances directly through Arc Explorer.
 
@@ -52,6 +52,7 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 - [Morpho Galaxy USDC strategy deployment (0.01 USDC) on Arc](https://explorer.arc.io/tx/0x156f849e41303a4b4bcfc7d2508fda760cddb9e0fdc031d550fa6d01a802fb1f)
 - [Vault withdrawal (0.01 USDC) recalling liquidity on Arc](https://explorer.arc.io/tx/0x375d3d3c864d662faa4fdb207db4c68fead373138756df56a2e5fd5218b53ac9)
 - [Signals offer publication (ID #1) on Arc](https://explorer.arc.io/tx/0x390aae3efcb76d8705b4d8129d9f2ed303861b534c62d798bce2f502e58c6e3c)
+- [Yield Autopilot factory deployment on Arc](https://explorer.arc.io/tx/0xe0e39d0ebdd228604931d3d798b9c58059083f9cbb6dfdb8349787284080a5e1)
 
 ## Agents, guardrails, and execution
 
@@ -62,7 +63,7 @@ flowchart LR
     Owner[Agent Owner] --> Factory[Argents Factories]
     Factory --> Vault[Dedicated Agent Vault]
     Guardrail{Daily UTC Cap} --> Vault
-    Vault -->|Yield Mode| Morpho[Morpho Galaxy USDC]
+    Vault -->|Yield Autopilot allocation| Morpho[Morpho Galaxy USDC]
     Vault -->|Treasury Mode| Recipient[Arc Recipient Address]
     Buyer[Buyer Wallet] -->|Signals Mode| Marketplace[Signals Marketplace]
     Marketplace -->|Direct Payment| Vault
@@ -71,13 +72,27 @@ flowchart LR
     Morpho --> Proof
 ```
 
+## Yield Autopilot
+
+Yield Autopilot is the capital engine of Argents. Each agent stores an owner-selected Morpho allocation in basis points and enforces it entirely onchain.
+
+1. The owner creates a dedicated Autopilot vault with an allocation and daily withdrawal cap.
+2. The owner funds the vault with native Arc USDC.
+3. The vault deposits the allocation target into Morpho Galaxy USDC in the same onchain flow.
+4. The owner can update the allocation at any time; the vault rebalances by deploying idle capital or recalling excess capital to itself.
+5. Any account can call `rebalance()` to restore the rule. The function cannot transfer assets outside the vault.
+6. The owner can withdraw only within the daily cap, with Morpho liquidity recalled into the vault as required.
+
+The app surfaces each agent’s total value, idle balance, Morpho position, net result, current allocation, onchain activity, and explorer links.
+
 ## Secure the agent flow
 
 Most "AI agent" apps today are little more than LLM prompts wired directly to hot wallets. If an agent hallucinates, catches a prompt injection, or hits an edge case, an entire treasury can be drained in a single transaction block.
 
 Argents enforces financial safety in **smart contracts**, not just system prompts:
 
-- **Agents as Operators, Humans as Owners**: An agent must never hold master keys. It operates within an isolated, owner-controlled smart vault (`ArgentsYieldVault`, `ArgentsAgentVault`) where key administrative powers (spending limits, emergency recovery) are strictly gated to the human owner (`onlyOwner`).
+- **Rules-Based Capital Allocation**: `ArgentsAutopilotYieldVault` stores the selected Morpho allocation onchain and applies it on each deposit. Any account can restore the rule without gaining authority to withdraw or redirect capital.
+- **Agents as Operators, Humans as Owners**: An agent does not hold a master key. It operates within an isolated, owner-controlled smart vault where withdrawal controls and rule updates are gated to the owner.
 - **Mathematically Enforced Daily Spend Limits**: Never grant infinite token allowance. Outflows are capped by on-chain daily spend limits (`spentByDay[currentDay]`) that reset automatically at midnight UTC. If an agent goes rogue, maximum 24-hour downside is strictly bounded.
 - **Strict Integer Base-Unit Math**: In Web3, everything is integer base units (6 decimals for native Arc USDC: `1.00 USDC = 1,000,000` base units). Zero floating-point math, preventing rounding errors and dust drains.
 - **Strict Separation of Idle vs. Deployed Capital**: Vaults maintain deterministic on-chain accounting: liquid idle USDC vs. strategy vault shares (held in Morpho Galaxy USDC). Liquidity recall and redemption are mathematically deterministic.
@@ -107,7 +122,7 @@ Before deployment, automated test suites actively challenged and verified each o
 | :--- | :--- | :--- |
 | Network | **Arc Mainnet (Chain ID 5042)** | Native USDC transfers, transaction gas fees, and immutable execution proof. |
 | Yield Strategy | **Morpho Galaxy USDC** | Direct ERC-4626 vault shares held directly by the agent vault (`0x8E357432CC12ff425c36432F312968aEb16112AF`). |
-| Core Factories | **Solidity 0.8.24 (`ArgentsAutopilotYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, applies Yield allocation rules, and enforces daily withdrawal limits. |
+| Core Factories | **Solidity 0.8.24 (`ArgentsAutopilotYield`, `ArgentsYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, applies Yield allocation rules, and enforces daily withdrawal limits. |
 | Paid Services & Output | **`ArgentsSignals` Marketplace** | Manages offer listings, direct buyer-to-vault payments, and on-chain delivery hashes (`0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68`). |
 | Safety Guardrails | **Time-bucketed Daily Caps** | Enforces maximum daily capital outflow resets every UTC midnight. |
 | Web3 & UI | **HTML5, Modern CSS, Ethers v6 UMD** | High-performance, zero-build-step client reading live RPC state and caching event logs. |
