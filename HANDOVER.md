@@ -73,6 +73,21 @@ The current published change turns Signals into its own hash route:
 
 The involved files are `index.html`, `app.js`, and `styles.css`. They are mirrored, pushed, and live in Sites version 19. The next agent should retain this layout unless the user requests a different structure.
 
+## In-progress Yield autopilot
+
+After reviewing the Arc Microgrants brief, the product direction is to make the Yield mode an actual rules-based onchain agent rather than another manual dashboard flow.
+
+`contracts/ArgentsAutopilotYield.sol` and `contracts/deploy-autopilot-yield.cjs` are compiled locally but are not deployed or committed yet. The contract does the following:
+
+- The owner configures a fixed strategy allocation in basis points and a daily withdrawal cap.
+- When the owner funds the vault, it automatically invests enough idle USDC into its immutable Morpho Galaxy USDC strategy to reach that allocation.
+- Anyone can call `rebalance()` to invest excess idle USDC, but cannot withdraw, change allocation, or change the strategy.
+- The owner can withdraw under the daily limit; the vault recalls Morpho USDC if its idle reserve is insufficient.
+
+The factory deployment was estimated on 14 October 2026 at `0.030038502008073725` USDC gas. The deployer wallet had only `0.037391356521453276` USDC, which is insufficient to deploy the factory, create an autopilot vault, and retain a safe gas reserve for the proposed 0.01 USDC demonstration. No deployment or capital movement was made.
+
+Do not claim this autopilot is live until its factory is deployed and an onchain funding/rebalance transaction is confirmed. To continue, fund the deployer wallet with at least 0.06 USDC of additional Arc-native USDC, then run the deployment script with `--deploy`, add the resulting factory address to the frontend, and create an agent with an explicit allocation.
+
 ## Important implementation details
 
 ### Frontend

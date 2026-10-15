@@ -262,6 +262,19 @@
     return { factory: YIELD_FACTORY_ADDRESS.toLowerCase(), lastBlock: YIELD_FACTORY_DEPLOY_BLOCK - 1, records: [] };
   }
 
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  async function getLogsWithRetry(provider, filter, maxRetries = 3) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await provider.getLogs(filter);
+      } catch (err) {
+        if (attempt === maxRetries - 1) throw err;
+        await wait(200 * (attempt + 1));
+      }
+    }
+  }
+
   async function refreshDiscovery() {
     if (discoveryPending) return discoveryPending;
     discoveryPending = (async () => {
@@ -285,7 +298,7 @@
         for (let from = Math.max(cache.lastBlock - 63, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
           const to = Math.min(from + DISCOVERY_SCAN_STEP - 1, latest);
           status.textContent = `Reading Yield factory events · Arc blocks ${from.toLocaleString("en-US")}–${to.toLocaleString("en-US")}`;
-          const logs = await publicProvider.getLogs({ address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
+          const logs = await getLogsWithRetry(publicProvider, { address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
           const known = new Set(cache.records.map((record) => record.address.toLowerCase()));
           for (const log of logs) {
             const event = factoryInterface.parseLog(log);
@@ -298,6 +311,7 @@
           cache.lastBlock = to;
           localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(cache));
           from = to + 1;
+          await wait(80);
         }
         status.textContent = `Reading ${cache.records.length} agent ${cache.records.length === 1 ? "position" : "positions"} from Arc…`;
         const positions = [];
@@ -324,7 +338,10 @@
           </div>`).join("") : `<p class="discovery-intro">No Yield agents found on Arc yet.</p>`;
         status.textContent = `${positions.length} public Yield ${positions.length === 1 ? "agent" : "agents"} · Ranked by current vault value · Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
       } catch (error) {
-        status.textContent = error.shortMessage || error.message || "Could not load public agents from Arc. Refresh to try again.";
+        const msg = error.shortMessage || error.message || "";
+        status.textContent = (msg.includes("coalesce") || msg.includes("rate limit"))
+          ? "Arc public RPC busy. Click 'Refresh public ranking' in a few seconds."
+          : (msg || "Could not load public agents from Arc. Refresh to try again.");
       } finally {
         button.disabled = false;
       }
@@ -343,11 +360,12 @@
       const latest = await reader.getBlockNumber();
       const records = [];
       for (let from = MODE_FACTORY_DEPLOY_BLOCK; from <= latest; from += DISCOVERY_SCAN_STEP) {
-        const logs = await reader.getLogs({ address: MODE_FACTORY_ADDRESS, fromBlock: from, toBlock: Math.min(latest, from + DISCOVERY_SCAN_STEP - 1), topics: [topic] });
+        const logs = await getLogsWithRetry(reader, { address: MODE_FACTORY_ADDRESS, fromBlock: from, toBlock: Math.min(latest, from + DISCOVERY_SCAN_STEP - 1), topics: [topic] });
         for (const log of logs) {
           const event = iface.parseLog(log);
           records.push({ address: event.args.agent, owner: event.args.owner, mode: Number(event.args.mode) === 1 ? "Signals" : "Treasury", name: event.args.name });
         }
+        await wait(80);
       }
       const values = await Promise.allSettled(records.map(async (record) => {
         const vault = new window.ethers.Contract(record.address, vaultAbi, reader);
@@ -359,7 +377,12 @@
       $("#mode-discovery-list").innerHTML = positions.length ? positions.slice(0, 20).map((agent, index) => `
         <div class="discovery-row"><span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span><div class="discovery-identity"><strong>${escapeHtml(agent.name)} · ${agent.mode}</strong><small>By ${shorten(agent.owner)} · ${shorten(agent.address)}</small></div><div class="discovery-value"><span>VAULT BALANCE</span><strong>${formatPreciseUsdc(agent.balance)} USDC</strong></div><a class="discovery-open" href="https://explorer.arc.io/address/${agent.address}" target="_blank" rel="noreferrer">↗</a></div>`).join("") : `<p class="discovery-intro">No public Signals or Treasury agents found yet.</p>`;
       status.textContent = `${positions.length} public Signals and Treasury ${positions.length === 1 ? "agent" : "agents"} · Ranked by vault balance`;
-    } catch (error) { status.textContent = error.shortMessage || error.message || "Could not read public mode agents from Arc."; }
+    } catch (error) {
+      const msg = error.shortMessage || error.message || "";
+      status.textContent = (msg.includes("coalesce") || msg.includes("rate limit"))
+        ? "Arc public RPC busy. Click refresh in a moment."
+        : (msg || "Could not read public mode agents from Arc.");
+    }
   }
 
   async function signalsContract(runner) {
