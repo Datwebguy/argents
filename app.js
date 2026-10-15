@@ -19,8 +19,8 @@
   const SIGNALS_ADDRESS = "0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68";
   const MODE_FACTORY_ADDRESS = "0x1A9555E261E39830317461a767f8D7B5fBF01c5d";
   const MODE_FACTORY_DEPLOY_BLOCK = 25932927;
-  const DISCOVERY_STORAGE_KEY = "argents.discovery.yield-v2.v1";
-  const DISCOVERY_SCAN_STEP = 2000;
+  const DISCOVERY_STORAGE_KEY = "argents.discovery.yield.v2";
+  const DISCOVERY_SCAN_STEP = 10000;
   const INITIAL_AGENT_ADDRESS = "0x5Fc1df20c04FB0DEbB1B168B3A3D650F1F91f29F";
   const STORAGE_KEY = "argents.agentRecords.v1";
   const FACTORY_PREFIX = "argents.factory.v1.";
@@ -471,11 +471,49 @@
   function discoveryCache() {
     try {
       const cached = JSON.parse(localStorage.getItem(DISCOVERY_STORAGE_KEY) || "null");
-      if (cached?.factory === YIELD_FACTORY_ADDRESS.toLowerCase() &&
-          Number.isInteger(cached.lastBlock) && Array.isArray(cached.records) &&
+      if (cached?.version === 2 && cached.sources && Array.isArray(cached.records) &&
           cached.records.every((record) => /^0x[a-fA-F0-9]{40}$/.test(record.address) && /^0x[a-fA-F0-9]{40}$/.test(record.owner))) return cached;
     } catch { /* Rescan from the factory deployment block. */ }
-    return { factory: YIELD_FACTORY_ADDRESS.toLowerCase(), lastBlock: YIELD_FACTORY_DEPLOY_BLOCK - 1, records: [] };
+    return { version: 2, sources: {}, records: [] };
+  }
+
+  const DISCOVERY_FACTORIES = [
+    { address: YIELD_FACTORY_ADDRESS, deployBlock: YIELD_FACTORY_DEPLOY_BLOCK, artifact: "ArgentsYieldFactory", kind: "yield-v2", strategy: "Morpho Galaxy USDC · manual allocation" },
+    { address: AUTOPILOT_YIELD_FACTORY_ADDRESS, deployBlock: AUTOPILOT_YIELD_FACTORY_DEPLOY_BLOCK, artifact: "ArgentsAutopilotYieldFactory", kind: "autopilot-yield", strategy: "Morpho Galaxy USDC · automatic allocation" },
+  ];
+
+  async function indexDiscoveryFactory(publicProvider, cache, source, latestBlock, onProgress) {
+    const artifact = await loadArtifacts(source.artifact);
+    const factory = new window.ethers.Contract(source.address, artifact.abi, publicProvider);
+    const sourceKey = source.address.toLowerCase();
+    let fromBlock = Math.max(source.deployBlock, Number(cache.sources[sourceKey] || source.deployBlock - 1) + 1);
+    const events = [];
+    while (fromBlock <= latestBlock) {
+      const toBlock = Math.min(fromBlock + DISCOVERY_SCAN_STEP - 1, latestBlock);
+      onProgress?.(`Indexing ${source.kind === "autopilot-yield" ? "Autopilot Yield" : "Yield"} agents · Arc blocks ${fromBlock.toLocaleString()}–${toBlock.toLocaleString()}`);
+      const logs = await getLogsWithRetry(publicProvider, { address: source.address, fromBlock, toBlock, topics: [factory.interface.getEvent("AgentCreated").topicHash] });
+      for (const log of logs) {
+        const event = factory.interface.parseLog(log);
+        events.push({
+          address: event.args.agent,
+          owner: event.args.owner,
+          name: event.args.name,
+          mode: "Yield",
+          kind: source.kind,
+          allocationBps: event.args.allocationBps == null ? null : String(event.args.allocationBps),
+          strategy: source.strategy,
+          dailyLimit: formatUsdc(event.args.dailySpendLimit, 6),
+          createdBlock: log.blockNumber,
+        });
+      }
+      fromBlock = toBlock + 1;
+      cache.sources[sourceKey] = toBlock;
+    }
+    for (const record of events) {
+      const index = cache.records.findIndex((item) => item.address.toLowerCase() === record.address.toLowerCase());
+      if (index >= 0) cache.records[index] = { ...cache.records[index], ...record };
+      else cache.records.push(record);
+    }
   }
 
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -499,6 +537,7 @@
       owner: "0x67471d8d542111F15481e599E5FF89529EFE60CA",
       name: "Argents Genesis Yield",
       mode: "Yield",
+      kind: "yield-v2",
       strategy: "Morpho Galaxy USDC (0x8E35...AF)",
       dailyLimit: "100"
     },
@@ -520,6 +559,25 @@
     }
   ];
 
+  function combinedDiscoveryAgents(indexed = []) {
+    const combined = [...ECOSYSTEM_AGENTS];
+    for (const agent of [...indexed, ...getAllAgents()]) {
+      if (!agent?.address || combined.some((item) => item.address.toLowerCase() === agent.address.toLowerCase())) continue;
+      combined.push({
+        address: agent.address,
+        owner: agent.owner,
+        name: agent.name,
+        mode: agent.mode || "Yield",
+        kind: agent.kind,
+        allocationBps: agent.allocationBps ?? null,
+        strategy: agent.strategy || (agent.kind === "autopilot-yield" ? "Morpho Galaxy USDC · automatic allocation" : agent.mode === "Yield" ? "Morpho Galaxy USDC" : "Guarded Vault"),
+        dailyLimit: agent.dailyLimit || "100",
+        createdBlock: agent.createdBlock || null,
+      });
+    }
+    return combined;
+  }
+
   async function refreshDiscovery() {
     renderDiscoveredAgents();
     if (discoveryPending) return discoveryPending;
@@ -531,21 +589,13 @@
         const publicProvider = getReadProvider();
         if (!publicProvider) throw new Error("Could not load the Arc reader.");
 
-        // Combine foundational ecosystem agents with user-created agents
-        const localAgents = getAllAgents();
-        const combined = [...ECOSYSTEM_AGENTS];
-        for (const local of localAgents) {
-          if (!combined.some((a) => a.address.toLowerCase() === local.address.toLowerCase())) {
-            combined.push({
-              address: local.address,
-              owner: local.owner,
-              name: local.name,
-              mode: local.mode || "Yield",
-              strategy: local.mode === "Yield" ? "Morpho Galaxy USDC" : "Guarded Vault",
-              dailyLimit: local.dailyLimit || "100"
-            });
-          }
+        const cache = discoveryCache();
+        const latestBlock = await publicProvider.getBlockNumber();
+        for (const source of DISCOVERY_FACTORIES) {
+          await indexDiscoveryFactory(publicProvider, cache, source, latestBlock, (message) => { if (status) status.textContent = message; });
         }
+        localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(cache));
+        const combined = combinedDiscoveryAgents(cache.records);
 
         // Fetch live balances quickly in parallel
         const positions = await Promise.all(combined.map(async (agent) => {
@@ -586,21 +636,7 @@
   function renderDiscoveredAgents() {
     const list = $("#discovery-list");
     if (!list) return;
-    const localAgents = getAllAgents();
-    const combined = [...ECOSYSTEM_AGENTS];
-    for (const local of localAgents) {
-      if (!combined.some((a) => a.address.toLowerCase() === local.address.toLowerCase())) {
-        combined.push({
-          address: local.address,
-          owner: local.owner,
-          name: local.name,
-          mode: local.mode || "Yield",
-          strategy: local.mode === "Yield" ? "Morpho Galaxy USDC" : "Guarded Vault",
-          dailyLimit: local.dailyLimit || "100",
-          assets: 0n
-        });
-      }
-    }
+    const combined = combinedDiscoveryAgents(discoveryCache().records);
     const positions = window._discoveredPositions || combined.map((a) => ({ ...a, assets: a.assets || 0n }));
     const filtered = activeDiscoveryFilter === "all"
       ? positions
@@ -612,7 +648,7 @@
       <div class="discovery-row">
         <span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span>
         <div class="discovery-identity">
-          <strong>${escapeHtml(agent.name)} <span class="signal-badge ${agent.mode === 'Yield' ? 'verified' : 'hot'}">${escapeHtml(agent.mode)}</span></strong>
+          <strong>${escapeHtml(agent.name)} <span class="signal-badge ${agent.mode === 'Yield' ? 'verified' : 'hot'}">${isAutopilotYield(agent) ? "Yield Autopilot" : escapeHtml(agent.mode)}</span></strong>
           <small>By ${shorten(agent.owner)} · ${shorten(agent.address)} · Cap: ${agent.dailyLimit} USDC/day</small>
         </div>
         <div class="discovery-value">
