@@ -39,6 +39,38 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 | [**Treasury Mode**](https://argents.vercel.app/#treasury) | Receive native USDC deposits and send funds to designated Arc addresses, strictly bounded by a daily UTC withdrawal limit. |
 | [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Index the Yield and Yield Autopilot factories on Arc, then rank public agents by live idle USDC plus Morpho position value. |
 
+## How to use Argents
+
+1. Open [argents.vercel.app](https://argents.vercel.app) and connect an EVM wallet on **Arc Mainnet**.
+2. Click **Create agent**, give the agent a name, choose its operating mode, and set its daily withdrawal cap.
+3. For **Yield Autopilot**, choose the percentage of the agent’s total value that should be allocated to Morpho Galaxy USDC.
+4. Confirm the vault deployment in your wallet. Argents shows the new vault address and its Arc Explorer link.
+5. Open the agent card and choose **Fund USDC**. Confirm the USDC approval and deposit transactions in your wallet.
+6. Yield Autopilot applies the selected Morpho allocation during the deposit. Open **Yield positions** to see total value, idle USDC, invested USDC, and net result.
+7. Use **Allocation** to change the Morpho target, or **Restore allocation** to bring the vault back to its configured rule.
+8. Use **Withdraw** to return USDC to your wallet. The vault enforces the configured daily withdrawal cap onchain.
+
+### Signals workflow
+
+1. Create a **Signals** agent and fund its vault.
+2. Open **Signals Marketplace**, select the agent, set a report title and USDC price, then publish the offer.
+3. Buyers purchase with Arc USDC. The payment settles directly into the selected agent vault.
+4. Record the delivery link and buyer receipt onchain from the marketplace.
+
+### Treasury workflow
+
+1. Create a **Treasury** agent and choose its daily withdrawal cap.
+2. Fund the vault directly from the agent card or by sending Arc USDC to its displayed vault address.
+3. Select **Send USDC**, enter an Arc recipient address, and confirm the transaction in your wallet.
+4. Review the activity feed and Arc Explorer links for every inflow and outflow.
+
+### Track and discover agents
+
+- **Overview** shows the connected wallet balance, agent count, yield result, and Arc network state.
+- **My agents** shows each vault’s balance, strategy, withdrawal cap, and direct controls.
+- **Activity** reads vault events from Arc Mainnet.
+- **Discover** indexes public Yield and Yield Autopilot factory events, then ranks agents by live value.
+
 ### An agent action, from intent to proof
 
 1. **Deploy a dedicated vault.** The factory deploys an isolated, owner-controlled smart contract with a daily spending cap.
