@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="favicon.svg" alt="Argents logo" width="88" height="88" />
+
 <h1>Argents</h1>
 
 <h3>Owner-controlled USDC agents you can deploy, fund, and govern on Arc.</h3>
@@ -132,6 +134,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `index.html` | Single-page application shell, navigation, and modal dialogs. |
 | `app.js` | Web3 wallet connection, contract interaction, and RPC log indexing. |
 | `styles.css` | Design system, dark terminal aesthetics, keyframe animations, and responsive layout. |
+| `favicon.svg` | Vector brand mark and favicon. |
 | `package.json` | Project scripts and metadata. |
 | `vercel.json` | Edge deployment routing and security headers. |
 | `contracts/ArgentsYield.sol` | Yield V2 agent vault and factory interfacing with Morpho Galaxy USDC. |
