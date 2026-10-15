@@ -157,16 +157,68 @@
     if (viewCount) viewCount.textContent = count;
     list.hidden = count === 0;
     if (pageList) pageList.hidden = count === 0;
-    const renderedRows = agents.map((agent, index) => `
-      <div class="agent-row" data-agent-index="${index}">
-        <div class="agent-avatar">${escapeHtml(agent.name.trim().slice(0, 1).toUpperCase())}</div>
-        <div class="agent-data"><strong>${escapeHtml(agent.name)}</strong><small>${isYieldV2(agent) ? "Morpho Yield" : escapeHtml(agent.mode || "Vault")} · Withdrawal cap ${escapeHtml(formatUsdc(BigInt(agent.dailyLimit), 6))} USDC/day</small></div>
-        <span class="agent-draft-state agent-contract-state">ACTIVE</span>
-        <span class="agent-balance" data-balance-for="${escapeHtml(agent.address)}">… USDC</span>
-        <a class="agent-explorer" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="Open agent in explorer">↗</a>
-        <div class="agent-controls">${agent.mode === "Signals" ? `<a class="agent-action agent-manage-link" href="#signals">Manage Signals →</a>` : ""}<button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
-        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Approved from your wallet` : agent.mode === "Signals" ? "Sell reports for USDC · Payments stay with this agent" : agent.mode === "Treasury" ? "Receives USDC directly · Transfers require your approval and respect your daily limit" : "Standard custody · Direct holdings"}</div>
-      </div>`).join("");
+    const renderedRows = agents.map((agent, index) => {
+      const isYield = isYieldV2(agent);
+      const isSignals = agent.mode === "Signals";
+      const isTreasury = agent.mode === "Treasury";
+      const modeClass = isYield ? "yield" : isSignals ? "signals" : "treasury";
+      const modeIcon = isYield ? "↗" : isSignals ? "⌁" : "▤";
+      const modeLabel = isYield ? "Morpho Yield" : escapeHtml(agent.mode || "Vault");
+      const strategyText = isYield
+        ? `Morpho Galaxy USDC (<a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">0x8E35...AF ↗</a>)`
+        : isSignals
+        ? "Paid Market Intelligence Reports on Arc"
+        : "Guarded Treasury · Team Inflows & Spend";
+
+      return `
+      <div class="agent-card" data-agent-index="${index}">
+        <div class="agent-card-header">
+          <div class="agent-card-meta">
+            <span class="agent-mode-icon ${modeClass}">${modeIcon}</span>
+            <div class="agent-card-info">
+              <div class="agent-card-title-line">
+                <h3 class="agent-name-text">${escapeHtml(agent.name)}</h3>
+                <span class="agent-mode-tag ${modeClass}">${modeLabel}</span>
+                <span class="agent-live-tag"><span class="pulse-dot"></span> Active</span>
+              </div>
+              <div class="agent-card-sub-line">
+                <span class="agent-addr-pill" title="${escapeHtml(agent.address)}">${shorten(agent.address)}</span>
+                <button class="agent-copy-btn" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy 📋</button>
+                <a class="agent-link-btn" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer">Arc Explorer ↗</a>
+              </div>
+            </div>
+          </div>
+          <div class="agent-card-balance">
+            <span class="balance-tag">AGENT BALANCE</span>
+            <strong class="balance-val" data-balance-for="${escapeHtml(agent.address)}">… USDC</strong>
+          </div>
+        </div>
+
+        <div class="agent-card-body">
+          <div class="agent-metric-box">
+            <span>24H DAILY CAP</span>
+            <strong>${escapeHtml(formatUsdc(BigInt(agent.dailyLimit), 6))} USDC / day</strong>
+          </div>
+          <div class="agent-metric-box">
+            <span>STRATEGY & STATUS</span>
+            <strong class="agent-strategy-desc">${strategyText}</strong>
+          </div>
+        </div>
+
+        <div class="agent-card-footer">
+          <div class="agent-footer-primary">
+            <button class="agent-btn primary" data-action="deposit" data-agent-index="${index}">＋ Fund USDC</button>
+            ${isYield ? `<button class="agent-btn highlight" data-action="deploy" data-agent-index="${index}">↗ Deploy to Morpho</button>` : ""}
+            ${isSignals ? `<a class="agent-btn highlight" href="#signals">⌁ Manage Signals →</a>` : ""}
+            ${isTreasury ? `<button class="agent-btn highlight" data-action="send" data-agent-index="${index}">Send USDC →</button>` : ""}
+          </div>
+          <div class="agent-footer-secondary">
+            <button class="agent-btn secondary" data-action="withdraw" data-agent-index="${index}">Withdraw</button>
+            <button class="agent-btn secondary" data-action="limit" data-agent-index="${index}">Daily Limit</button>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
     list.innerHTML = renderedRows;
     if (pageList) pageList.innerHTML = renderedRows;
     $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
