@@ -12,6 +12,8 @@
   const PLATFORM_FACTORY_DEPLOY_BLOCK = 25907676;
   const YIELD_FACTORY_ADDRESS = "0x02B78468aDA29F698eB6E488EB28d757aA671b6E";
   const YIELD_FACTORY_DEPLOY_BLOCK = 25926643;
+  const AUTOPILOT_YIELD_FACTORY_ADDRESS = "0x30c017818F938180b2a6d8592Bd180F51EBdBbE2";
+  const AUTOPILOT_YIELD_FACTORY_DEPLOY_BLOCK = 26162789;
   const YIELD_INITIAL_AGENT = "0x9eac69A950a13B40BE06547bE833Df653FE32Db8";
   const YIELD_STRATEGY_ADDRESS = "0x8E357432CC12ff425c36432F312968aEb16112AF";
   const SIGNALS_ADDRESS = "0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68";
@@ -43,7 +45,9 @@
   let transactionAction = "deposit";
   let discoveryPending = null;
   const isYieldV2 = (agent) => agent.kind === "yield-v2";
-  const vaultType = (agent) => isYieldV2(agent) ? "ArgentsYieldVault" : "ArgentsAgentVault";
+  const isAutopilotYield = (agent) => agent.kind === "autopilot-yield";
+  const isYieldAgent = (agent) => isYieldV2(agent) || isAutopilotYield(agent);
+  const vaultType = (agent) => isAutopilotYield(agent) ? "ArgentsAutopilotYieldVault" : isYieldV2(agent) ? "ArgentsYieldVault" : "ArgentsAgentVault";
 
   function showToast(message, kind = "success") {
     toast.textContent = message;
@@ -158,14 +162,14 @@
     list.hidden = count === 0;
     if (pageList) pageList.hidden = count === 0;
     const renderedRows = agents.map((agent, index) => {
-      const isYield = isYieldV2(agent);
+      const isYield = isYieldAgent(agent);
       const isSignals = agent.mode === "Signals";
       const isTreasury = agent.mode === "Treasury";
       const modeClass = isYield ? "yield" : isSignals ? "signals" : "treasury";
       const modeIcon = isYield ? "↗" : isSignals ? "⌁" : "▤";
-      const modeLabel = isYield ? "Morpho Yield" : escapeHtml(agent.mode || "Vault");
+      const modeLabel = isAutopilotYield(agent) ? "Autopilot Yield" : isYield ? "Morpho Yield" : escapeHtml(agent.mode || "Vault");
       const strategyText = isYield
-        ? `Morpho Galaxy USDC (<a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">0x8E35...AF ↗</a>)`
+        ? `${isAutopilotYield(agent) ? `Auto-allocates ${Number(agent.allocationBps || 0) / 100}%` : "Manual allocation"} · Morpho Galaxy USDC (<a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">0x8E35...AF ↗</a>)`
         : isSignals
         ? "Paid Market Intelligence Reports on Arc"
         : "Guarded Treasury · Team Inflows & Spend";
@@ -208,7 +212,9 @@
         <div class="agent-card-footer">
           <div class="agent-footer-primary">
             <button class="agent-btn primary" data-action="deposit" data-agent-index="${index}">＋ Fund USDC</button>
-            ${isYield ? `<button class="agent-btn highlight" data-action="deploy" data-agent-index="${index}">↗ Deploy to Morpho</button>` : ""}
+            ${isYieldV2(agent) ? `<button class="agent-btn highlight" data-action="deploy" data-agent-index="${index}">↗ Deploy to Morpho</button>` : ""}
+            ${isAutopilotYield(agent) ? `<button class="agent-btn highlight" data-action="rebalance" data-agent-index="${index}">↗ Restore allocation</button>` : ""}
+            ${isAutopilotYield(agent) ? `<button class="agent-btn secondary" data-action="allocation" data-agent-index="${index}">Allocation ${Number(agent.allocationBps || 0) / 100}%</button>` : ""}
             ${isSignals ? `<a class="agent-btn highlight" href="#signals">⌁ Manage Signals →</a>` : ""}
             ${isTreasury ? `<button class="agent-btn highlight" data-action="send" data-agent-index="${index}">Send USDC →</button>` : ""}
           </div>
@@ -222,7 +228,7 @@
     list.innerHTML = renderedRows;
     if (pageList) pageList.innerHTML = renderedRows;
     $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
-    const yieldAgents = agents.filter(isYieldV2);
+    const yieldAgents = agents.filter(isYieldAgent);
     const yieldEmpty = $("#yield-empty");
     if (yieldEmpty) yieldEmpty.hidden = yieldAgents.length !== 0;
     const yieldList = $("#yield-positions-list");
@@ -248,7 +254,7 @@
   }
 
   async function loadArtifacts(contractName) {
-    const source = contractName.startsWith("ArgentsYield") ? "ArgentsYield" : contractName === "ArgentsSignals" ? "ArgentsSignals" : contractName === "ArgentsModeFactory" ? "ArgentsModes" : "ArgentsAgent";
+    const source = contractName.startsWith("ArgentsAutopilotYield") ? "ArgentsAutopilotYield" : contractName.startsWith("ArgentsYield") ? "ArgentsYield" : contractName === "ArgentsSignals" ? "ArgentsSignals" : contractName === "ArgentsModeFactory" ? "ArgentsModes" : "ArgentsAgent";
     const base = `./contracts/artifacts/contracts_${source}_sol_${contractName}`;
     const [abiResponse, binResponse] = await Promise.all([fetch(`${base}.abi`), fetch(`${base}.bin`)]);
     if (!abiResponse.ok || !binResponse.ok) throw new Error("Contract artifacts could not be loaded. Serve the project from its root folder.");
@@ -426,12 +432,12 @@
   async function refreshAgentBalances(agents = visibleAgents()) {
     const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
     if (!browserProvider) return;
-    const abis = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault")]);
+    const abis = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault"), loadArtifacts("ArgentsAutopilotYieldVault")]);
     const results = await Promise.allSettled(agents.map(async (agent) => {
-      const vault = new window.ethers.Contract(agent.address, abis[isYieldV2(agent) ? 1 : 0].abi, browserProvider);
+      const vault = new window.ethers.Contract(agent.address, isAutopilotYield(agent) ? abis[2].abi : isYieldV2(agent) ? abis[1].abi : abis[0].abi, browserProvider);
       let balance;
       let result = null;
-      if (isYieldV2(agent)) {
+      if (isYieldAgent(agent)) {
         const [idle, invested, deposited, withdrawn] = await Promise.all([
           vault.balance(), vault.strategyAssets(), vault.totalDeposited(), vault.totalWithdrawn(),
         ]);
@@ -454,8 +460,8 @@
       if (element) element.textContent = `${formatUsdc(balance, 6)} USDC`;
       return result;
     }));
-    const yieldAgents = agents.filter(isYieldV2);
-    const failures = results.filter((item, index) => isYieldV2(agents[index]) && item.status === "rejected");
+    const yieldAgents = agents.filter(isYieldAgent);
+    const failures = results.filter((item, index) => isYieldAgent(agents[index]) && item.status === "rejected");
     const result = results.reduce((sum, item) => item.status === "fulfilled" && item.value !== null ? sum + item.value : sum, 0n);
     $("#yield-result").innerHTML = failures.length ? `—<span class="metric-unit"> USDC</span>` : `${result < 0n ? "−" : ""}${formatPreciseUsdc(result < 0n ? -result : result)}<span class="metric-unit"> USDC</span>`;
     $("#yield-result-foot").textContent = failures.length ? "Unable to read every Yield position; refresh again" : yieldAgents.length ? "Current value plus withdrawals minus deposits" : "Create a Morpho Yield agent to track results";
@@ -549,7 +555,7 @@
             const bal = await publicProvider.getBalance(agent.address).catch(() => 0n);
             balance = BigInt(bal);
             if (agent.mode === "Yield") {
-              const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
+              const vaultAbi = (await loadArtifacts(vaultType(agent))).abi;
               const vault = new window.ethers.Contract(agent.address, vaultAbi, publicProvider);
               invested = await vault.strategyAssets().catch(() => 0n);
             }
@@ -853,10 +859,10 @@
     if (!agents.length || !activeAccount) return;
     const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
     if (!browserProvider) return;
-    const [legacy, yieldVault] = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault")]);
+    const [legacy, yieldVault, autopilotVault] = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault"), loadArtifacts("ArgentsAutopilotYieldVault")]);
     const latestBlock = await browserProvider.getBlockNumber();
     const eventGroups = await Promise.allSettled(agents.filter((agent) => Number.isInteger(agent.createdBlock)).map(async (agent) => {
-      const vault = new window.ethers.Contract(agent.address, isYieldV2(agent) ? yieldVault.abi : legacy.abi, browserProvider);
+      const vault = new window.ethers.Contract(agent.address, isAutopilotYield(agent) ? autopilotVault.abi : isYieldV2(agent) ? yieldVault.abi : legacy.abi, browserProvider);
       const entries = [];
       for (let fromBlock = agent.createdBlock; fromBlock <= latestBlock; fromBlock += 2000) {
         const toBlock = Math.min(fromBlock + 1999, latestBlock);
@@ -864,12 +870,12 @@
         for (const log of logs) {
           let event;
           try { event = vault.interface.parseLog(log); } catch { continue; }
-          const kind = { Deposited: "deposit", Withdrawn: "withdrawal", DailySpendLimitUpdated: "limit", YieldDeployed: "deploy", YieldRecalled: "recall" }[event?.name];
+          const kind = { Deposited: "deposit", Withdrawn: "withdrawal", DailySpendLimitUpdated: "limit", YieldDeployed: "deploy", YieldRecalled: "recall", Rebalanced: "rebalance" }[event?.name];
           if (!kind) continue;
           const amount = kind === "limit" ? event.args.newLimit : kind === "recall" ? event.args.assets : event.args.amount ?? event.args.assets;
           entries.push({ kind, agent, amount, recipient: event.args.recipient || null, blockNumber: log.blockNumber, txHash: log.transactionHash, index: log.index });
         }
-        if (!isYieldV2(agent)) {
+        if (!isYieldAgent(agent)) {
           const transfers = await browserProvider.getLogs({
             address: USDC_ADDRESS, fromBlock, toBlock,
             topics: [window.ethers.id("Transfer(address,address,uint256)"), null, window.ethers.zeroPadValue(agent.address, 32)],
@@ -894,8 +900,8 @@
       return;
     }
     const renderedEntries = `<div class="onchain-activity-list">${entries.slice(0, 30).map((entry) => {
-      const label = { deposit: "USDC deposited", inflow: "USDC received", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
-      const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : `${["deposit", "inflow"].includes(entry.kind) ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
+      const label = { deposit: "USDC deposited", inflow: "USDC received", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", rebalance: "Allocation restored", limit: "Daily limit updated" }[entry.kind];
+      const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : entry.kind === "rebalance" ? "Allocation updated" : `${["deposit", "inflow"].includes(entry.kind) ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
       return `<div class="onchain-activity-row">
         <span class="activity-event-mark ${entry.kind}">${entry.kind === "deposit" ? "↓" : entry.kind === "withdrawal" ? "↑" : entry.kind === "deploy" ? "↗" : "≡"}</span>
         <div class="activity-event-copy"><strong>${escapeHtml(entry.agent.name)}</strong><small>${label}</small></div>
@@ -987,6 +993,23 @@
         }
       }
       saveAgent({ address, owner, name, mode: "Yield", kind: "yield-v2", dailyLimit: String(dailyLimit), createdBlock, createdAt: existing?.createdAt || null });
+    }));
+  }
+
+  async function restoreAutopilotYieldAgents(account) {
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
+    const [factoryArtifact, vaultArtifact] = await Promise.all([loadArtifacts("ArgentsAutopilotYieldFactory"), loadArtifacts("ArgentsAutopilotYieldVault")]);
+    const factory = new window.ethers.Contract(AUTOPILOT_YIELD_FACTORY_ADDRESS, factoryArtifact.abi, browserProvider);
+    const addresses = await factory.agentsOf(account);
+    const latestBlock = await browserProvider.getBlockNumber();
+    await Promise.allSettled(addresses.map(async (address) => {
+      const vault = new window.ethers.Contract(address, vaultArtifact.abi, browserProvider);
+      const [owner, name, dailyLimit, allocationBps] = await Promise.all([vault.owner(), vault.name(), vault.dailySpendLimit(), vault.allocationBps()]);
+      if (owner.toLowerCase() !== account.toLowerCase()) return;
+      const existing = getAllAgents().find((agent) => agent.address.toLowerCase() === address.toLowerCase());
+      const createdBlock = existing?.createdBlock || await findCreationBlock(factory, address, AUTOPILOT_YIELD_FACTORY_DEPLOY_BLOCK, latestBlock);
+      saveAgent({ address, owner, name, mode: "Yield", kind: "autopilot-yield", allocationBps: String(allocationBps), dailyLimit: String(dailyLimit), createdBlock, createdAt: existing?.createdAt || null });
     }));
   }
 
@@ -1119,6 +1142,7 @@
     try {
       await restoreAgentsFromChain(account).catch(() => {});
       await restoreYieldAgents(account).catch(() => {});
+      await restoreAutopilotYieldAgents(account).catch(() => {});
       await restoreModeAgents(account).catch(() => {});
     } catch (err) {
       console.warn("Restore agents error:", err);
@@ -1184,8 +1208,8 @@
 
   async function getFactory(signer, owner, mode) {
     if (mode === "Yield") {
-      const artifact = await loadArtifacts("ArgentsYieldFactory");
-      const factory = new window.ethers.Contract(YIELD_FACTORY_ADDRESS, artifact.abi, signer);
+      const artifact = await loadArtifacts("ArgentsAutopilotYieldFactory");
+      const factory = new window.ethers.Contract(AUTOPILOT_YIELD_FACTORY_ADDRESS, artifact.abi, signer);
       const [configuredUsdc, configuredStrategy] = await Promise.all([factory.usdc(), factory.strategy()]);
       if (configuredUsdc.toLowerCase() !== USDC_ADDRESS.toLowerCase() || configuredStrategy.toLowerCase() !== YIELD_STRATEGY_ADDRESS.toLowerCase()) throw new Error("Yield factory configuration does not match Arc USDC and the selected strategy.");
       return factory;
@@ -1230,6 +1254,7 @@
       const name = String(formData.get("name") || "").trim();
       const mode = String(formData.get("mode") || "Yield");
       const limit = String(formData.get("limit") || "100");
+      const allocation = String(formData.get("allocation") || "90");
       if (!name) throw new Error("Enter a name for this agent.");
       const { signer } = await getSigner();
       const owner = await signer.getAddress();
@@ -1237,18 +1262,22 @@
       submit.textContent = "Creating vault…";
       showToast("Confirm agent vault creation in your wallet.");
       const limitInBaseUnits = parseUsdc(limit);
-      const transaction = mode === "Yield" ? await factory.createAgent(name, limitInBaseUnits) : await factory.createAgent(name, limitInBaseUnits, mode === "Signals" ? 1 : 2);
+      const allocationBps = Math.round(Number(allocation) * 100);
+      if (mode === "Yield" && (!Number.isFinite(Number(allocation)) || allocationBps < 0 || allocationBps > 10_000)) throw new Error("Set a Yield allocation from 0 to 100%.");
+      const transaction = mode === "Yield" ? await factory.createAgent(name, limitInBaseUnits, allocationBps) : await factory.createAgent(name, limitInBaseUnits, mode === "Signals" ? 1 : 2);
       const receipt = await transaction.wait();
       const createdEvent = receipt.logs.map((log) => {
         try { return factory.interface.parseLog(log); } catch { return null; }
       }).find((eventLog) => eventLog?.name === (mode === "Yield" ? "AgentCreated" : "ModeAgentCreated"));
       if (!createdEvent) throw new Error("The transaction completed, but the agent address was not found in its receipt.");
       const address = createdEvent.args.agent;
-      saveAgent({ address, owner, name, mode, kind: mode === "Yield" ? "yield-v2" : "mode-v1", dailyLimit: String(limitInBaseUnits), createdBlock: receipt.blockNumber, createdAt: new Date().toISOString() });
+      saveAgent({ address, owner, name, mode, kind: mode === "Yield" ? "autopilot-yield" : "mode-v1", allocationBps: mode === "Yield" ? String(allocationBps) : null, dailyLimit: String(limitInBaseUnits), createdBlock: receipt.blockNumber, createdAt: new Date().toISOString() });
       renderAgents();
       agentDialog.close();
       event.currentTarget.reset();
       $("#agent-limit").value = "100";
+      $("#agent-allocation").value = "90";
+      updateAgentModeFields();
       showToast(`${name} is live on Arc. Open the vault address to verify it.`);
       $("#activity-body").innerHTML = `<div class="activity-empty-icon">✓</div><p><strong>${escapeHtml(name)}</strong> vault deployed at <span style="font-family:var(--mono)">${shorten(address)}</span>.</p><a class="inline-link" href="https://explorer.arc.io/address/${address}" target="_blank" rel="noreferrer">Verify on Arc Explorer <span>↗</span></a>`;
       refreshActivity(visibleAgents()).catch(() => {});
@@ -1265,8 +1294,18 @@
 
   function openAgentDialog(mode = "Yield") {
     $("#agent-mode").value = mode;
+    updateAgentModeFields();
     agentDialog.showModal();
     setTimeout(() => $("#agent-name").focus(), 80);
+  }
+
+  function updateAgentModeFields() {
+    const isYield = $("#agent-mode").value === "Yield";
+    $("#agent-allocation-wrap").hidden = !isYield;
+    $("#agent-allocation").required = isYield;
+    $("#agent-mode-note").textContent = isYield
+      ? "Every Yield deposit automatically targets the selected Morpho allocation. Only you can withdraw, within this daily cap."
+      : "This cap protects your capital by limiting total outflows per day. Every transaction requires your wallet approval.";
   }
 
   function openTransactionDialog(agent, action) {
@@ -1276,8 +1315,10 @@
     const isWithdraw = action === "withdraw";
     const isLimit = action === "limit";
     const isDeploy = action === "deploy";
+    const isRebalance = action === "rebalance";
+    const isAllocation = action === "allocation";
     const isSend = action === "send";
-    $("#transaction-title").textContent = isDeposit ? `Fund ${agent.name}.` : isWithdraw ? `Withdraw from ${agent.name}.` : isSend ? `Send from ${agent.name}.` : isDeploy ? `Deploy ${agent.name}'s USDC.` : `Set ${agent.name}'s daily withdrawal cap.`;
+    $("#transaction-title").textContent = isDeposit ? `Fund ${agent.name}.` : isWithdraw ? `Withdraw from ${agent.name}.` : isSend ? `Send from ${agent.name}.` : isDeploy ? `Deploy ${agent.name}'s USDC.` : isRebalance ? `Restore ${agent.name}'s allocation.` : isAllocation ? `Set ${agent.name}'s allocation.` : `Set ${agent.name}'s daily withdrawal cap.`;
     $("#transaction-copy").textContent = isDeposit
       ? "Deposit USDC from your wallet into this agent vault. Incoming deposits are not restricted by the withdrawal cap."
       : isWithdraw
@@ -1286,13 +1327,20 @@
           ? "Send USDC from this Treasury vault to an Arc address. Your wallet signs the transfer and the amount counts toward today's withdrawal cap."
         : isDeploy
           ? "Move idle USDC from this agent vault into Galaxy USDC on Morpho. Your wallet signs this action. Strategy value can fall, and withdrawals depend on liquidity."
+          : isRebalance
+            ? `Restore this agent's ${Number(agent.allocationBps || 0) / 100}% Morpho allocation. This can be called by anyone, but funds always stay in the agent vault.`
+            : isAllocation
+              ? "Change the percentage of this Yield agent's total value held in Morpho. The contract rebalances immediately and never sends the recalled funds to a caller."
           : "Set the total USDC this vault can withdraw during one UTC day. Deposits do not count toward this cap.";
-    $("#transaction-amount-label").textContent = isLimit ? "New daily withdrawal cap" : "Amount";
-    $("#transaction-amount").step = "0.000001";
-    $("#transaction-amount").min = isLimit ? "0" : "0.000001";
-    $("#transaction-amount").placeholder = isLimit ? formatUsdc(BigInt(agent.dailyLimit), 6) : "0.00";
-    $("#transaction-submit").innerHTML = isDeposit ? "Approve and deposit <span>→</span>" : isWithdraw ? "Withdraw to my wallet <span>→</span>" : isSend ? "Send from Treasury <span>→</span>" : isDeploy ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
-    $("#transaction-amount").value = "";
+    $("#transaction-amount-label").textContent = isAllocation ? "New Morpho allocation (%)" : isLimit ? "New daily withdrawal cap" : "Amount";
+    $("#transaction-amount").closest(".amount-input-wrap").hidden = isRebalance;
+    $("#transaction-amount").required = !isRebalance;
+    $("#transaction-amount").step = isAllocation ? "1" : "0.000001";
+    $("#transaction-amount").min = (isLimit || isAllocation) ? "0" : "0.000001";
+    $("#transaction-amount").max = isAllocation ? "100" : "";
+    $("#transaction-amount").placeholder = isAllocation ? String(Number(agent.allocationBps || 0) / 100) : isLimit ? formatUsdc(BigInt(agent.dailyLimit), 6) : "0.00";
+    $("#transaction-submit").innerHTML = isDeposit ? "Approve and deposit <span>→</span>" : isWithdraw ? "Withdraw to my wallet <span>→</span>" : isSend ? "Send from Treasury <span>→</span>" : isDeploy ? "Deploy to Morpho <span>→</span>" : isRebalance ? "Restore allocation <span>→</span>" : isAllocation ? "Save allocation <span>→</span>" : "Save withdrawal cap <span>→</span>";
+    $("#transaction-amount").value = isAllocation ? String(Number(agent.allocationBps || 0) / 100) : "";
     $("#transaction-recipient-wrap").hidden = !isSend;
     $("#transaction-recipient").required = isSend;
     $("#transaction-recipient").value = "";
@@ -1319,7 +1367,7 @@
     const vault = new window.ethers.Contract(agent.address, vaultAbi, browserProvider);
     const [walletBalance, vaultBalance, dailyCap, latestBlock] = await Promise.all([
       token.balanceOf(activeAccount),
-      isYieldV2(agent) ? vault.totalAssets() : vault.balance(),
+      isYieldAgent(agent) ? vault.totalAssets() : vault.balance(),
       vault.dailySpendLimit(),
       browserProvider.getBlock("latest"),
     ]);
@@ -1329,10 +1377,10 @@
     const remaining = dailyCap > spentToday ? dailyCap - spentToday : 0n;
     $("#dialog-wallet-balance").textContent = `${formatUsdc(walletBalance, 6)} USDC`;
     $("#dialog-vault-balance").textContent = `${formatUsdc(vaultBalance, 6)} USDC`;
-    $("#dialog-vault-label").textContent = isYieldV2(agent) ? "Agent total value" : "Agent vault";
+    $("#dialog-vault-label").textContent = isYieldAgent(agent) ? "Agent total value" : "Agent vault";
     const position = $("#transaction-position");
-    position.hidden = !isYieldV2(agent);
-    if (isYieldV2(agent)) {
+    position.hidden = !isYieldAgent(agent);
+    if (isYieldAgent(agent)) {
       const [idle, invested] = await Promise.all([vault.balance(), vault.strategyAssets()]);
       $("#dialog-idle-balance").textContent = `${formatUsdc(idle, 6)} USDC`;
       $("#dialog-invested-balance").textContent = `${formatUsdc(invested, 6)} USDC`;
@@ -1343,20 +1391,22 @@
       ? `Withdrawals made today: ${formatUsdc(spentToday, 6)} USDC. Daily limits reset at midnight. Set the cap to 0 to pause withdrawals.`
       : action === "deploy"
         ? "Idle USDC will be deployed into the Morpho yield strategy. Your wallet will approve the transaction."
+      : action === "rebalance"
+        ? `The vault will restore its ${Number(agent.allocationBps || 0) / 100}% Morpho target. It cannot send funds to the caller.`
       : action === "deposit"
-        ? `Deposited USDC is immediately available to your agent. Daily limits apply only to withdrawals.`
+        ? isAutopilotYield(agent) ? `This deposit automatically allocates ${Number(agent.allocationBps || 0) / 100}% to Morpho. Daily limits apply only to withdrawals.` : "Deposited USDC is immediately available to your agent. Daily limits apply only to withdrawals."
         : `This withdrawal uses today's remaining allowance (${formatUsdc(remaining, 6)} USDC available). Limits reset daily.`;
   }
 
   async function runVaultTransaction(event) {
     event.preventDefault();
     const submit = $("#transaction-submit");
-    const original = transactionAction === "deposit" ? "Approve and deposit <span>→</span>" : transactionAction === "withdraw" ? "Withdraw to my wallet <span>→</span>" : transactionAction === "send" ? "Send from Treasury <span>→</span>" : transactionAction === "deploy" ? "Deploy to Morpho <span>→</span>" : "Save withdrawal cap <span>→</span>";
+    const original = transactionAction === "deposit" ? "Approve and deposit <span>→</span>" : transactionAction === "withdraw" ? "Withdraw to my wallet <span>→</span>" : transactionAction === "send" ? "Send from Treasury <span>→</span>" : transactionAction === "deploy" ? "Deploy to Morpho <span>→</span>" : transactionAction === "rebalance" ? "Restore allocation <span>→</span>" : transactionAction === "allocation" ? "Save allocation <span>→</span>" : "Save withdrawal cap <span>→</span>";
     submit.disabled = true;
     try {
       if (!await ensureConnected()) return;
-      const amount = parseUsdc($("#transaction-amount").value);
-      if (transactionAction !== "limit" && amount <= 0n) throw new Error("Enter an amount greater than zero.");
+      const amount = transactionAction === "allocation" ? null : parseUsdc($("#transaction-amount").value);
+      if (transactionAction !== "limit" && transactionAction !== "rebalance" && transactionAction !== "allocation" && amount <= 0n) throw new Error("Enter an amount greater than zero.");
       const { signer } = await getSigner();
       const vaultArtifact = await loadArtifacts(vaultType(transactionTarget));
       const vault = new window.ethers.Contract(transactionTarget.address, vaultArtifact.abi, signer);
@@ -1390,12 +1440,29 @@
         const deployment = await vault.deployYield(amount, minShares);
         await deployment.wait();
         showToast(`${formatUsdc(amount, 6)} USDC deployed to Morpho from ${transactionTarget.name}.`);
+      } else if (transactionAction === "rebalance") {
+        if (!isAutopilotYield(transactionTarget)) throw new Error("This vault does not support allocation rebalancing.");
+        submit.textContent = "Restoring allocation…";
+        const rebalanced = await vault.rebalance();
+        await rebalanced.wait();
+        showToast(`${transactionTarget.name} restored its Morpho allocation.`);
+      } else if (transactionAction === "allocation") {
+        if (!isAutopilotYield(transactionTarget)) throw new Error("This vault does not support automated allocation.");
+        const percentage = Number($("#transaction-amount").value);
+        if (!Number.isInteger(percentage) || percentage < 0 || percentage > 100) throw new Error("Enter a whole allocation percentage from 0 to 100.");
+        const allocationBps = percentage * 100;
+        submit.textContent = "Saving allocation…";
+        const update = await vault.setAllocationBps(allocationBps);
+        await update.wait();
+        const records = getAllAgents().map((agent) => agent.address.toLowerCase() === transactionTarget.address.toLowerCase() ? { ...agent, allocationBps: String(allocationBps) } : agent);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+        showToast(`${transactionTarget.name} now targets ${percentage}% in Morpho.`);
       } else if (transactionAction === "withdraw" || transactionAction === "send") {
         if (transactionAction === "send" && transactionTarget.mode !== "Treasury") throw new Error("Only Treasury agents can send to a recipient here.");
         const recipient = transactionAction === "send" ? $("#transaction-recipient").value.trim() : activeAccount;
         if (!window.ethers.isAddress(recipient) || recipient === window.ethers.ZeroAddress) throw new Error("Enter a valid Arc recipient address.");
         const [vaultBalance, dailyCap, latestBlock] = await Promise.all([
-          isYieldV2(transactionTarget) ? vault.totalAssets() : vault.balance(),
+          isYieldAgent(transactionTarget) ? vault.totalAssets() : vault.balance(),
           vault.dailySpendLimit(),
           signer.provider.getBlock("latest"),
         ]);
@@ -1552,6 +1619,7 @@
   document.querySelectorAll("[data-create-mode]").forEach((button) => {
     button.addEventListener("click", () => openAgentDialog(button.dataset.createMode));
   });
+  $("#agent-mode").addEventListener("change", updateAgentModeFields);
   $("#agent-form").addEventListener("submit", createAgent);
   $("#transaction-form").addEventListener("submit", runVaultTransaction);
   $("#agent-list").addEventListener("click", (event) => {

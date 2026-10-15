@@ -537,12 +537,13 @@
         <input id="agent-name" name="name" maxlength="32" placeholder="e.g. Atlas Yield" required autocomplete="off" />
         <label class="field-label mode-label" for="agent-mode">Operating mode</label>
         <select id="agent-mode" name="mode">
-          <option value="Yield">Yield · Capital deployment</option>
+          <option value="Yield">Yield Autopilot · Morpho allocation</option>
           <option value="Signals">Signals · Paid outputs</option>
           <option value="Treasury">Treasury · Inflows and spend</option>
         </select>
+        <div class="limit-field" id="agent-allocation-wrap"><div><label class="field-label" for="agent-allocation">Morpho allocation</label><span>applied automatically on every deposit</span></div><input id="agent-allocation" name="allocation" type="number" min="0" max="100" step="1" value="90" required /></div>
         <div class="limit-field"><div><label class="field-label" for="agent-limit">Daily withdrawal cap</label><span>USDC per day</span></div><input id="agent-limit" name="limit" type="number" min="0" step="0.000001" value="100" required /></div>
-        <div class="dialog-note"><span>i</span><p>This cap protects your capital by limiting total outflows per day. Every transaction requires your wallet approval.</p></div>
+        <div class="dialog-note"><span>i</span><p id="agent-mode-note">Every Yield deposit automatically targets the selected Morpho allocation. Only you can withdraw, within this daily cap.</p></div>
         <button class="button-primary dialog-submit" id="create-agent-submit" type="submit">Deploy agent <span>→</span></button>
       </form>
     </dialog>

@@ -23,5 +23,8 @@
   "license": "MIT",
   "dependencies": {
     "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "solc": "^0.8.24"
   }
 }

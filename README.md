@@ -34,7 +34,7 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 
 | Area | What happens there |
 | :--- | :--- |
-| [**Yield Mode**](https://argents.vercel.app/#yield) | Deploy idle vault USDC to Morpho Galaxy USDC (`0x8E3574...`), monitor live vault share valuation, track cumulative deposits and redemptions, and recall liquidity. |
+| [**Yield Autopilot**](https://argents.vercel.app/#yield) | Select a Morpho Galaxy USDC allocation once. Every later deposit automatically restores that allocation; anyone may call maintenance, but only the owner can withdraw under the daily cap. |
 | [**Signals Marketplace**](https://argents.vercel.app/#signals) | Browse paid intelligence reports, purchase access via direct USDC transfers, deliver access URIs, and confirm buyer receipt on-chain. |
 | [**Treasury Mode**](https://argents.vercel.app/#treasury) | Receive native USDC deposits and send funds to designated Arc addresses, strictly bounded by a daily UTC withdrawal limit. |
 | [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Scan Arc factory events to discover public Yield, Signals, and Treasury agents, ranked live by vault balance and total value. |
@@ -43,7 +43,7 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 
 1. **Deploy a dedicated vault.** The factory deploys an isolated, owner-controlled smart contract with a daily spending cap.
 2. **Fund the agent.** Approve and deposit native USDC into the vault on Arc Mainnet.
-3. **Direct the agent.** Choose an action: deploy idle USDC to Morpho Galaxy, publish a research signal, or initiate a treasury send.
+3. **Set the operating rule.** Yield Autopilot applies its selected Morpho allocation whenever it receives a deposit; Signals and Treasury follow their respective owner-approved flows.
 4. **Enforce on-chain guardrails.** The contract automatically checks the daily UTC withdrawal cap before any funds leave the vault.
 5. **Inspect the verified result.** Track state changes, event logs, and balances directly through Arc Explorer.
 
@@ -107,11 +107,11 @@ Before deployment, automated test suites actively challenged and verified each o
 | :--- | :--- | :--- |
 | Network | **Arc Mainnet (Chain ID 5042)** | Native USDC transfers, transaction gas fees, and immutable execution proof. |
 | Yield Strategy | **Morpho Galaxy USDC** | Direct ERC-4626 vault shares held directly by the agent vault (`0x8E357432CC12ff425c36432F312968aEb16112AF`). |
-| Core Factories | **Solidity 0.8.24 (`ArgentsYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, and enforces daily withdrawal limits. |
+| Core Factories | **Solidity 0.8.24 (`ArgentsAutopilotYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, applies Yield allocation rules, and enforces daily withdrawal limits. |
 | Paid Services & Output | **`ArgentsSignals` Marketplace** | Manages offer listings, direct buyer-to-vault payments, and on-chain delivery hashes (`0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68`). |
 | Safety Guardrails | **Time-bucketed Daily Caps** | Enforces maximum daily capital outflow resets every UTC midnight. |
 | Web3 & UI | **HTML5, Modern CSS, Ethers v6 UMD** | High-performance, zero-build-step client reading live RPC state and caching event logs. |
-| Hosting & Edge | **Vercel / OpenAI Sites** | Production static hosting with strict security headers (`tryargents`). |
+| Hosting & Edge | **Vercel / OpenAI Sites** | Production static hosting with strict security headers ([argents.vercel.app](https://argents.vercel.app)). |
 
 ## Live deployments
 
@@ -121,6 +121,7 @@ Before deployment, automated test suites actively challenged and verified each o
 | **Arc Mainnet** | Chain ID `5042` · RPC `https://rpc.mainnet.arc.io` | Mainnet |
 | **Native USDC (Gas Token)** | [`0x3600000000000000000000000000000000000000`](https://explorer.arc.io/address/0x3600000000000000000000000000000000000000) | Arc Mainnet |
 | **Yield Factory** | [`0x02B78468aDA29F698eB6E488EB28d757aA671b6E`](https://explorer.arc.io/address/0x02B78468aDA29F698eB6E488EB28d757aA671b6E) | Arc Mainnet |
+| **Yield Autopilot Factory** | [`0x30c017818F938180b2a6d8592Bd180F51EBdBbE2`](https://explorer.arc.io/address/0x30c017818F938180b2a6d8592Bd180F51EBdBbE2) | Arc Mainnet |
 | **Morpho Galaxy USDC** | [`0x8E357432CC12ff425c36432F312968aEb16112AF`](https://explorer.arc.io/address/0x8E357432CC12ff425c36432F312968aEb16112AF) | Arc Mainnet |
 | **Mode Factory** | [`0x1A9555E261E39830317461a767f8D7B5fBF01c5d`](https://explorer.arc.io/address/0x1A9555E261E39830317461a767f8D7B5fBF01c5d) | Arc Mainnet |
 | **Signals Marketplace** | [`0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68`](https://explorer.arc.io/address/0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68) | Arc Mainnet |
@@ -171,7 +172,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `contracts/ArgentsModes.sol` | Multi-mode agent factory for Signals and Treasury agents. |
 | `contracts/ArgentsSignals.sol` | Signals marketplace for offer listings, payments, and receipts. |
 | `contracts/ArgentsAgent.sol` | Base capped USDC vault contract. |
-| `contracts/ArgentsAutopilotYield.sol` | Rules-based automated rebalancing Yield contract *(in development)*. |
+| `contracts/ArgentsAutopilotYield.sol` | Rules-based Yield vault and factory deployed on Arc Mainnet. |
 | `scripts/agent-runner.cjs` | Autonomous operator runtime for inspecting agents and fulfilling signals. |
 | `deployments.arc-mainnet.json` | Complete machine-readable deployment transaction logs. |
 | `LICENSE` | Standard open-source MIT license. |

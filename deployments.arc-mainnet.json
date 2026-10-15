@@ -35,5 +35,8 @@
   "treasuryAgentTxHash": "0x1518bf98fb464d4a8d265ca2e917101ca0ebe8ab58d4be466fccd1af930ca273",
   "treasuryAgentCreatedBlock": 25933166,
   "firstSignalsOfferId": 1,
-  "firstSignalsOfferTxHash": "0x390aae3efcb76d8705b4d8129d9f2ed303861b534c62d798bce2f502e58c6e3c"
+  "firstSignalsOfferTxHash": "0x390aae3efcb76d8705b4d8129d9f2ed303861b534c62d798bce2f502e58c6e3c",
+  "autopilotYieldFactoryAddress": "0x30c017818F938180b2a6d8592Bd180F51EBdBbE2",
+  "autopilotYieldFactoryTxHash": "0xe0e39d0ebdd228604931d3d798b9c58059083f9cbb6dfdb8349787284080a5e1",
+  "autopilotYieldFactoryDeploymentBlock": 26162789
 }
