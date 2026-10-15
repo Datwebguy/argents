@@ -9,7 +9,7 @@
   "agentTxHash": "0xb6603e13a1b78874f88f426d390c645362834baa45cf2d49b174990fb2ed43de",
   "agentCreatedBlock": 25907688,
   "owner": "0x67471d8d542111F15481e599E5FF89529EFE60CA",
-  "appUrl": "https://argents-live.funolive9.chatgpt.site",
+  "appUrl": "https://argents.vercel.app",
   "repositoryUrl": "https://github.com/Datwebguy/argents",
   "factoryDeploymentBlock": 25907676,
   "yieldFactoryAddress": "0x02B78468aDA29F698eB6E488EB28d757aA671b6E",

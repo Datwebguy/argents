@@ -87,7 +87,7 @@ flowchart LR
 
 | Purpose | Address / Link | Network |
 | :--- | :--- | :--- |
-| **Live Web App** | [argents.vercel.app](https://argents.vercel.app) *(backup: [argents-live.funolive9.chatgpt.site](https://argents-live.funolive9.chatgpt.site))* | Production |
+| **Live Web App** | [argents.vercel.app](https://argents.vercel.app) | Production |
 | **Arc Mainnet** | Chain ID `5042` · RPC `https://rpc.mainnet.arc.io` | Mainnet |
 | **Native USDC (Gas Token)** | [`0x3600000000000000000000000000000000000000`](https://explorer.arc.io/address/0x3600000000000000000000000000000000000000) | Arc Mainnet |
 | **Yield Factory** | [`0x02B78468aDA29F698eB6E488EB28d757aA671b6E`](https://explorer.arc.io/address/0x02B78468aDA29F698eB6E488EB28d757aA671b6E) | Arc Mainnet |
@@ -144,8 +144,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `contracts/ArgentsAutopilotYield.sol` | Rules-based automated rebalancing Yield contract *(in development)*. |
 | `scripts/agent-runner.cjs` | Autonomous operator runtime for inspecting agents and fulfilling signals. |
 | `deployments.arc-mainnet.json` | Complete machine-readable deployment transaction logs. |
-| `BUILD_STATUS.md` | Factual verification status of all contracts and workflows. |
-| `SECURITY.md` | Threat model, trust assumptions, and security considerations. |
+| `LICENSE` | Standard open-source MIT license. |
 
 ---
 
