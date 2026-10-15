@@ -152,11 +152,11 @@
       <div class="agent-row" data-agent-index="${index}">
         <div class="agent-avatar">${escapeHtml(agent.name.trim().slice(0, 1).toUpperCase())}</div>
         <div class="agent-data"><strong>${escapeHtml(agent.name)}</strong><small>${isYieldV2(agent) ? "Morpho Yield" : escapeHtml(agent.mode || "Vault")} · Withdrawal cap ${escapeHtml(formatUsdc(BigInt(agent.dailyLimit), 6))} USDC/day</small></div>
-        <span class="agent-draft-state agent-contract-state">ON ARC</span>
+        <span class="agent-draft-state agent-contract-state">ACTIVE</span>
         <span class="agent-balance" data-balance-for="${escapeHtml(agent.address)}">… USDC</span>
-        <a class="agent-explorer" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="Open agent vault in Arc explorer">↗</a>
+        <a class="agent-explorer" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="Open agent in explorer">↗</a>
         <div class="agent-controls">${agent.mode === "Signals" ? `<a class="agent-action agent-manage-link" href="#signals">Manage Signals →</a>` : ""}<button class="agent-action" data-action="deposit" data-agent-index="${index}">Fund</button><button class="agent-action" data-copy-vault="${escapeHtml(agent.address)}" type="button">Copy address</button>${isYieldV2(agent) ? `<button class="agent-action" data-action="deploy" data-agent-index="${index}">Deploy yield</button>` : ""}<button class="agent-action" data-action="withdraw" data-agent-index="${index}">Withdraw</button>${agent.mode === "Treasury" ? `<button class="agent-action" data-action="send" data-agent-index="${index}">Send USDC</button>` : ""}<button class="agent-action" data-action="limit" data-agent-index="${index}" aria-label="Set daily withdrawal cap for ${escapeHtml(agent.name)}">Limit</button></div>
-        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Wallet signed deployment` : agent.mode === "Signals" ? "Sell reports for USDC · Payments stay in this vault" : agent.mode === "Treasury" ? "Receives Arc USDC at this address · Sends require your wallet and count toward the UTC daily cap" : "Legacy custody vault · No yield strategy"}</div>
+        <div class="agent-mode-note">${isYieldV2(agent) ? `Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">Galaxy USDC on Morpho ↗</a> · Approved from your wallet` : agent.mode === "Signals" ? "Sell reports for USDC · Payments stay with this agent" : agent.mode === "Treasury" ? "Receives USDC directly · Transfers require your approval and respect your daily limit" : "Standard custody · Direct holdings"}</div>
       </div>`).join("");
     $("#signal-vault").innerHTML = `<option value="">Select a Signals agent</option>${agents.filter((agent) => agent.mode === "Signals").map((agent) => `<option value="${escapeHtml(agent.address)}">${escapeHtml(agent.name)} · ${shorten(agent.address)}</option>`).join("")}`;
     const yieldAgents = agents.filter(isYieldV2);
@@ -297,7 +297,7 @@
         // Re-read a small overlap so a temporarily delayed RPC log cannot be missed forever.
         for (let from = Math.max(cache.lastBlock - 63, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
           const to = Math.min(from + DISCOVERY_SCAN_STEP - 1, latest);
-          status.textContent = `Reading Yield factory events · Arc blocks ${from.toLocaleString("en-US")}–${to.toLocaleString("en-US")}`;
+          status.textContent = `Syncing agents…`;
           const logs = await getLogsWithRetry(publicProvider, { address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
           const known = new Set(cache.records.map((record) => record.address.toLowerCase()));
           for (const log of logs) {
@@ -517,16 +517,16 @@
         return;
       }
       container.innerHTML = `<div class="activity-empty-icon">✓</div>
-        <p>Wallet connected on Arc Mainnet. Current block: <span style="color:#d0f16d;font-family:var(--mono)">${latestBlock.toLocaleString("en-US")}</span>.</p>
-        <a class="inline-link" href="https://explorer.arc.io/address/${activeAccount}" target="_blank" rel="noreferrer">View wallet on explorer <span>↗</span></a>`;
+        <p>Wallet connected. Ready to deploy and fund agents.</p>
+        <a class="inline-link" href="https://explorer.arc.io/address/${activeAccount}" target="_blank" rel="noreferrer">View in explorer <span>↗</span></a>`;
       return;
     }
     container.innerHTML = `<div class="onchain-activity-list">${entries.slice(0, 30).map((entry) => {
-      const label = { deposit: "USDC deposited", inflow: "USDC received directly", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
+      const label = { deposit: "USDC deposited", inflow: "USDC received", withdrawal: entry.recipient ? `USDC sent to ${shorten(entry.recipient)}` : "USDC withdrawn", deploy: "USDC deployed to Morpho", recall: "USDC recalled from Morpho", limit: "Daily limit updated" }[entry.kind];
       const value = entry.kind === "limit" ? `${formatUsdc(entry.amount, 6)} USDC limit` : `${["deposit", "inflow"].includes(entry.kind) ? "+" : entry.kind === "withdrawal" ? "−" : ""}${formatUsdc(entry.amount, 6)} USDC`;
       return `<div class="onchain-activity-row">
         <span class="activity-event-mark ${entry.kind}">${entry.kind === "deposit" ? "↓" : entry.kind === "withdrawal" ? "↑" : entry.kind === "deploy" ? "↗" : "≡"}</span>
-        <div class="activity-event-copy"><strong>${escapeHtml(entry.agent.name)}</strong><small>${label} · block ${entry.blockNumber.toLocaleString("en-US")}</small></div>
+        <div class="activity-event-copy"><strong>${escapeHtml(entry.agent.name)}</strong><small>${label}</small></div>
         <span class="activity-event-value">${value}</span>
         <a href="https://explorer.arc.io/tx/${entry.txHash}" target="_blank" rel="noreferrer" aria-label="Verify transaction on Arc Explorer">↗</a>
       </div>`;
@@ -666,13 +666,13 @@
     }
     if (activeAccount?.toLowerCase() !== account.toLowerCase() || localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
     balanceValue.innerHTML = `${formatUsdc(BigInt(balanceHex), 18)}<span class="metric-unit"> USDC</span>`;
-    walletFoot.innerHTML = `<span class="status-dash"></span>Live native USDC · Arc block ${blockNumber}`;
+    walletFoot.innerHTML = `<span class="status-dash"></span>Live balance · Arc Network`;
     chainStatus.textContent = "Connected to Arc";
     chainDot.classList.add("is-live");
-    $("#network-caption").textContent = "USDC is gas";
+    $("#network-caption").textContent = "USDC native";
     $("#activity-body").innerHTML = `<div class="activity-empty-icon">✓</div>
-      <p>Wallet connected on Arc Mainnet. Current block: <span style="color:#d0f16d;font-family:var(--mono)">${blockNumber}</span>.</p>
-      <a class="inline-link" href="https://explorer.arc.io/address/${account}" target="_blank" rel="noreferrer">View wallet on explorer <span>↗</span></a>`;
+      <p>Wallet connected. Ready to deploy and fund agents.</p>
+      <a class="inline-link" href="https://explorer.arc.io/address/${account}" target="_blank" rel="noreferrer">View in explorer <span>↗</span></a>`;
     renderAgents();
     refreshActivity(visibleAgents()).catch(() => {});
     refreshSignals().catch(() => {});
@@ -873,12 +873,12 @@
     $("#dialog-daily-cap").textContent = `${formatUsdc(dailyCap, 6)} USDC`;
     $("#dialog-remaining-cap").textContent = `${formatUsdc(remaining, 6)} USDC`;
     $("#transaction-rule-note").textContent = action === "limit"
-      ? `Withdrawals already made today: ${formatUsdc(spentToday, 6)} USDC. The allowance resets at 00:00 UTC; lowering the cap does not reset today's withdrawals. Set the cap to 0 to pause withdrawals. Arc uses USDC for gas.`
+      ? `Withdrawals made today: ${formatUsdc(spentToday, 6)} USDC. Daily limits reset at midnight. Set the cap to 0 to pause withdrawals.`
       : action === "deploy"
-        ? "Only idle agent USDC can be deployed. Morpho mints strategy shares to this agent vault. Earnings are variable and capital is at risk."
+        ? "Idle USDC will be deployed into the Morpho yield strategy. Your wallet will approve the transaction."
       : action === "deposit"
-        ? `The daily cap limits withdrawals only. You have withdrawn ${formatUsdc(spentToday, 6)} USDC today; the remaining allowance resets at 00:00 UTC. Arc uses USDC for gas.`
-        : `This withdrawal uses today's remaining allowance. ${formatUsdc(spentToday, 6)} USDC has been withdrawn today; the cap resets at 00:00 UTC. Arc uses USDC for gas.`;
+        ? `Deposited USDC is immediately available to your agent. Daily limits apply only to withdrawals.`
+        : `This withdrawal uses today's remaining allowance (${formatUsdc(remaining, 6)} USDC available). Limits reset daily.`;
   }
 
   async function runVaultTransaction(event) {
