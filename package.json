@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python -m http.server 4173",
     "start": "python -m http.server 4173",
-    "check": "node --check app.js",
+    "check": "node --check app.js && node --check scripts/agent-runner.cjs",
     "agent": "node scripts/agent-runner.cjs"
   },
   "keywords": [
@@ -20,5 +20,8 @@
     "smart-contracts"
   ],
   "author": "Datwebguy",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^6.15.0"
+  }
 }

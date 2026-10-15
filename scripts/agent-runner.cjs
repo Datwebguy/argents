@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 /**
- * Argents Autonomous Agent Runtime (Arc Mainnet)
- * 
- * Executes autonomous agent operations on Arc Mainnet:
- * - Monitors agent smart vaults
- * - In Signals mode: auto-detects paid orders and delivers report links on-chain
- * - In Yield mode: monitors idle treasury reserves and rebalances into Morpho Galaxy USDC
- * - In Treasury mode: enforces daily expenditure limits and audit logs
+ * Argents operator utility (Arc Mainnet)
+ *
+ * Provides read-only vault inspection and an owner-authorized Signals delivery command.
+ * It does not run a scheduler, execute Yield allocations, or initiate Treasury payouts.
  */
 
 const fs = require('node:fs');
@@ -142,7 +139,7 @@ async function main() {
       break;
     }
     default:
-      console.log(`Argents Autonomous Agent Runtime`);
+      console.log(`Argents operator utility`);
       console.log(`Commands:`);
       console.log(`  inspect <vaultAddress>              Inspect agent balances and limits on Arc`);
       console.log(`  signals [vaultAddress]              Check pending Signals orders on Arc`);

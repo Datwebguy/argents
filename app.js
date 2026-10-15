@@ -1493,7 +1493,7 @@
     if (target === "discover") { refreshDiscovery().catch(() => {}); refreshModeDiscovery().catch(() => {}); }
     if (target === "yield") renderPublicYieldAgents().catch(() => {});
 
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   }
 
   window.addEventListener("hashchange", syncView);
@@ -1535,7 +1535,7 @@
   $("#new-agent-button").addEventListener("click", () => openAgentDialog());
   $("#signals-create-agent").addEventListener("click", () => openAgentDialog("Signals"));
   $("#empty-create").addEventListener("click", () => openAgentDialog());
-  $("#view-agents").addEventListener("click", () => $("#agents").scrollIntoView({ behavior: "smooth" }));
+  $("#view-agents-button").addEventListener("click", () => { window.location.hash = "#agents"; });
   $("#yield-refresh").addEventListener("click", () => {
     $("#yield-updated").textContent = "Refreshing positions from Arc…";
     refreshAgentBalances().catch(() => {
@@ -1597,7 +1597,6 @@
   $("#agents-view-create")?.addEventListener("click", () => openAgentDialog());
   $("#agents-page-empty-create")?.addEventListener("click", () => openAgentDialog());
   $("#yield-empty-create")?.addEventListener("click", () => openAgentDialog("Yield"));
-  $("#view-agents")?.addEventListener("click", () => { window.location.hash = "#agents"; });
   $("#signals-presets")?.addEventListener("click", (event) => {
     const tag = event.target.closest("[data-title]");
     if (!tag) return;

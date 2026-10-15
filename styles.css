@@ -1039,6 +1039,7 @@ h1 span { background: linear-gradient(90deg, var(--lime), #a8e052, #e8f5a0, var(
     font-family: var(--sans) !important;
     font-weight: 600 !important;
     padding: 6px 8px !important;
+    min-height: 44px !important;
     border-radius: 6px !important;
     transition: color 0.15s ease !important;
   }
@@ -1055,4 +1056,7 @@ h1 span { background: linear-gradient(90deg, var(--lime), #a8e052, #e8f5a0, var(
   .full-span-rule { grid-column: span 1 !important; }
   .yield-strategy-specs { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
   .public-yield-meta { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .flywheel-steps { flex-direction: column; align-items: stretch; gap: 8px; }
+  .flywheel-arrow { align-self: center; transform: rotate(90deg); }
+  .flywheel-step { width: 100%; }
 }
