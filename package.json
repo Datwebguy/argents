@@ -1,0 +1,24 @@
+{
+  "name": "argents",
+  "version": "1.0.0",
+  "description": "Owner-controlled USDC agents you can deploy, fund, and govern on Arc Mainnet",
+  "main": "app.js",
+  "scripts": {
+    "dev": "python -m http.server 4173",
+    "start": "python -m http.server 4173",
+    "check": "node --check app.js",
+    "agent": "node scripts/agent-runner.cjs"
+  },
+  "keywords": [
+    "arc",
+    "arc-network",
+    "usdc",
+    "agents",
+    "defi",
+    "morpho",
+    "hackathon",
+    "smart-contracts"
+  ],
+  "author": "Datwebguy",
+  "license": "MIT"
+}
