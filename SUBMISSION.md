@@ -4,7 +4,7 @@ This file tracks verified facts and remaining checks. It is not a paste-ready ha
 
 ## Links
 
-- Live app: https://argents-live.funolive9.chatgpt.site
+- Live app: https://argents.vercel.app (backup: https://argents-live.funolive9.chatgpt.site)
 - Public repository: https://github.com/Datwebguy/argents
 - Builder profile: https://github.com/Datwebguy
 - Arc factory: https://explorer.arc.io/address/0xfC887cB480f257e8a76e823de9066b5B528a66a9

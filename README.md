@@ -4,7 +4,7 @@ Argents creates owner-controlled USDC agent vaults on Arc. Yield deploys into Mo
 
 ## Live deployment
 
-- App: https://argents-live.funolive9.chatgpt.site
+- App: https://argents.vercel.app (backup: https://argents-live.funolive9.chatgpt.site)
 - Public source: https://github.com/Datwebguy/argents
 - Builder profile: https://github.com/Datwebguy
 - Network: Arc Mainnet (chain ID `5042`)
