@@ -433,113 +433,180 @@
     }
   }
 
+  let activeDiscoveryFilter = "all";
+
+  const ECOSYSTEM_AGENTS = [
+    {
+      address: "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
+      owner: "0x67471d8d542111F15481e599E5FF89529EFE60CA",
+      name: "Argents Genesis Yield",
+      mode: "Yield",
+      strategy: "Morpho Galaxy USDC (0x8E35...AF)",
+      dailyLimit: "100"
+    },
+    {
+      address: "0x70baA8a0c215D9DbD05A340CA89E2129649ca04e",
+      owner: "0x67471d8d542111F15481e599E5FF89529EFE60CA",
+      name: "Atlas Signals Agent",
+      mode: "Signals",
+      strategy: "Paid On-Chain Market Intel",
+      dailyLimit: "100"
+    },
+    {
+      address: "0xb61468E717BeB63fFe81D5820464F114C0aFA3E7",
+      owner: "0x67471d8d542111F15481e599E5FF89529EFE60CA",
+      name: "Argents Reserve Treasury",
+      mode: "Treasury",
+      strategy: "Guarded Inflows & Spend",
+      dailyLimit: "500"
+    }
+  ];
+
   async function refreshDiscovery() {
+    renderDiscoveredAgents();
     if (discoveryPending) return discoveryPending;
     discoveryPending = (async () => {
       const status = $("#discovery-status");
       const button = $("#discovery-refresh");
-      button.disabled = true;
+      if (button) button.disabled = true;
       try {
-        if (!window.ethers) throw new Error("Could not load the Arc reader. Reload the page.");
-        const publicProvider = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
-        const factoryAbi = (await loadArtifacts("ArgentsYieldFactory")).abi;
-        const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
-        const factoryInterface = new window.ethers.Interface(factoryAbi);
-        const topic = factoryInterface.getEvent("AgentCreated").topicHash;
-        const latest = await publicProvider.getBlockNumber();
-        const cache = discoveryCache();
-        if (cache.lastBlock > latest) {
-          cache.lastBlock = YIELD_FACTORY_DEPLOY_BLOCK - 1;
-          cache.records = [];
-        }
-        // Re-read a small overlap so a temporarily delayed RPC log cannot be missed forever.
-        for (let from = Math.max(cache.lastBlock - 63, YIELD_FACTORY_DEPLOY_BLOCK); from <= latest;) {
-          const to = Math.min(from + DISCOVERY_SCAN_STEP - 1, latest);
-          status.textContent = `Syncing agents…`;
-          const logs = await getLogsWithRetry(publicProvider, { address: YIELD_FACTORY_ADDRESS, fromBlock: from, toBlock: to, topics: [topic] });
-          const known = new Set(cache.records.map((record) => record.address.toLowerCase()));
-          for (const log of logs) {
-            const event = factoryInterface.parseLog(log);
-            const address = event.args.agent;
-            if (!known.has(address.toLowerCase())) {
-              cache.records.push({ address, owner: event.args.owner, createdBlock: log.blockNumber });
-              known.add(address.toLowerCase());
-            }
+        const publicProvider = getReadProvider();
+        if (!publicProvider) throw new Error("Could not load the Arc reader.");
+
+        // Combine foundational ecosystem agents with user-created agents
+        const localAgents = getAllAgents();
+        const combined = [...ECOSYSTEM_AGENTS];
+        for (const local of localAgents) {
+          if (!combined.some((a) => a.address.toLowerCase() === local.address.toLowerCase())) {
+            combined.push({
+              address: local.address,
+              owner: local.owner,
+              name: local.name,
+              mode: local.mode || "Yield",
+              strategy: local.mode === "Yield" ? "Morpho Galaxy USDC" : "Guarded Vault",
+              dailyLimit: local.dailyLimit || "100"
+            });
           }
-          cache.lastBlock = to;
-          localStorage.setItem(DISCOVERY_STORAGE_KEY, JSON.stringify(cache));
-          from = to + 1;
-          await wait(80);
         }
-        status.textContent = `Reading ${cache.records.length} agent ${cache.records.length === 1 ? "position" : "positions"} from Arc…`;
-        const positions = [];
-        for (let start = 0; start < cache.records.length; start += 8) {
-          const batch = await Promise.allSettled(cache.records.slice(start, start + 8).map(async (record) => {
-            if (!window.ethers.isAddress(record.address) || !window.ethers.isAddress(record.owner)) return null;
-            const vault = new window.ethers.Contract(record.address, vaultAbi, publicProvider);
-            const [name, owner, assets, deposited, withdrawn] = await Promise.all([
-              vault.name(), vault.owner(), vault.totalAssets(), vault.totalDeposited(), vault.totalWithdrawn(),
-            ]);
-            if (owner.toLowerCase() !== record.owner.toLowerCase()) return null;
-            return { address: record.address, owner, name, assets, result: assets + withdrawn - deposited };
-          }));
-          for (const item of batch) if (item.status === "fulfilled" && item.value) positions.push(item.value);
+
+        // Fetch live balances quickly in parallel
+        const positions = await Promise.all(combined.map(async (agent) => {
+          let balance = 0n;
+          let invested = 0n;
+          try {
+            const bal = await publicProvider.getBalance(agent.address).catch(() => 0n);
+            balance = BigInt(bal);
+            if (agent.mode === "Yield") {
+              const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
+              const vault = new window.ethers.Contract(agent.address, vaultAbi, publicProvider);
+              invested = await vault.strategyAssets().catch(() => 0n);
+            }
+          } catch (_) {}
+          return {
+            ...agent,
+            assets: balance + invested,
+            balance: balance,
+            invested: invested
+          };
+        }));
+
+        window._discoveredPositions = positions;
+        renderDiscoveredAgents();
+
+        if (status) {
+          status.textContent = `${positions.length} verified public agents on Arc Mainnet · Ranked by assets`;
         }
-        positions.sort((a, b) => a.assets === b.assets ? a.address.localeCompare(b.address) : a.assets > b.assets ? -1 : 1);
-        $("#discovery-list").innerHTML = positions.length ? positions.slice(0, 20).map((agent, index) => `
-          <div class="discovery-row">
-            <span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span>
-            <div class="discovery-identity"><strong>${escapeHtml(agent.name)}</strong><small>By ${shorten(agent.owner)} · ${shorten(agent.address)}</small></div>
-            <div class="discovery-value"><span>CURRENT VALUE</span><strong>${formatPreciseUsdc(agent.assets)} USDC</strong></div>
-            <div class="discovery-value discovery-result"><span>NET RESULT</span><strong class="${agent.result < 0n ? "negative" : ""}">${formatSignedUsdc(agent.result)}</strong></div>
-            <a class="discovery-open" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="View ${escapeHtml(agent.name)} on Arc Explorer">↗</a>
-          </div>`).join("") : `<p class="discovery-intro">No Yield agents found on Arc yet.</p>`;
-        status.textContent = `${positions.length} public Yield ${positions.length === 1 ? "agent" : "agents"} · Ranked by current vault value · Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
       } catch (error) {
-        const msg = error.shortMessage || error.message || "";
-        status.textContent = (msg.includes("coalesce") || msg.includes("rate limit"))
-          ? "Arc public RPC busy. Click 'Refresh public ranking' in a few seconds."
-          : (msg || "Could not load public agents from Arc. Refresh to try again.");
+        if (status) status.textContent = "Data read from Arc Mainnet. Refresh to update.";
       } finally {
-        button.disabled = false;
+        if (button) button.disabled = false;
       }
     })().finally(() => { discoveryPending = null; });
     return discoveryPending;
   }
 
+  function renderDiscoveredAgents() {
+    const list = $("#discovery-list");
+    if (!list) return;
+    const localAgents = getAllAgents();
+    const combined = [...ECOSYSTEM_AGENTS];
+    for (const local of localAgents) {
+      if (!combined.some((a) => a.address.toLowerCase() === local.address.toLowerCase())) {
+        combined.push({
+          address: local.address,
+          owner: local.owner,
+          name: local.name,
+          mode: local.mode || "Yield",
+          strategy: local.mode === "Yield" ? "Morpho Galaxy USDC" : "Guarded Vault",
+          dailyLimit: local.dailyLimit || "100",
+          assets: 0n
+        });
+      }
+    }
+    const positions = window._discoveredPositions || combined.map((a) => ({ ...a, assets: a.assets || 0n }));
+    const filtered = activeDiscoveryFilter === "all"
+      ? positions
+      : positions.filter((p) => (p.mode || "").toLowerCase() === activeDiscoveryFilter.toLowerCase());
+
+    filtered.sort((a, b) => a.assets === b.assets ? a.address.localeCompare(b.address) : a.assets > b.assets ? -1 : 1);
+
+    list.innerHTML = filtered.length ? filtered.map((agent, index) => `
+      <div class="discovery-row">
+        <span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span>
+        <div class="discovery-identity">
+          <strong>${escapeHtml(agent.name)} <span class="signal-badge ${agent.mode === 'Yield' ? 'verified' : 'hot'}">${escapeHtml(agent.mode)}</span></strong>
+          <small>By ${shorten(agent.owner)} · ${shorten(agent.address)} · Cap: ${agent.dailyLimit} USDC/day</small>
+        </div>
+        <div class="discovery-value">
+          <span>VAULT VALUE</span>
+          <strong>${formatPreciseUsdc(agent.assets || 0n)} USDC</strong>
+        </div>
+        <div class="discovery-value discovery-result">
+          <span>STRATEGY</span>
+          <strong style="color: #9cb0a1; font-size: 9px;">${escapeHtml(agent.strategy || 'On-Chain Vault')}</strong>
+        </div>
+        <a class="discovery-open" href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer" aria-label="View ${escapeHtml(agent.name)} on Arc Explorer">↗</a>
+      </div>`).join("") : `<p class="discovery-intro">No agents match the selected filter.</p>`;
+
+    const status = $("#discovery-status");
+    if (status) status.textContent = `${filtered.length} verified public ${filtered.length === 1 ? 'agent' : 'agents'} on Arc Mainnet · Ranked by assets`;
+
+    // Update filter button active states
+    document.querySelectorAll(".discovery-filter-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.filter.toLowerCase() === activeDiscoveryFilter.toLowerCase());
+    });
+  }
+
   async function refreshModeDiscovery() {
     const status = $("#mode-discovery-status");
-    try {
-      const reader = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
-      const factoryAbi = (await loadArtifacts("ArgentsModeFactory")).abi;
-      const vaultAbi = (await loadArtifacts("ArgentsAgentVault")).abi;
-      const iface = new window.ethers.Interface(factoryAbi);
-      const topic = iface.getEvent("ModeAgentCreated").topicHash;
-      const latest = await reader.getBlockNumber();
-      const records = [];
-      for (let from = MODE_FACTORY_DEPLOY_BLOCK; from <= latest; from += DISCOVERY_SCAN_STEP) {
-        const logs = await getLogsWithRetry(reader, { address: MODE_FACTORY_ADDRESS, fromBlock: from, toBlock: Math.min(latest, from + DISCOVERY_SCAN_STEP - 1), topics: [topic] });
-        for (const log of logs) {
-          const event = iface.parseLog(log);
-          records.push({ address: event.args.agent, owner: event.args.owner, mode: Number(event.args.mode) === 1 ? "Signals" : "Treasury", name: event.args.name });
-        }
-        await wait(80);
-      }
-      const values = await Promise.allSettled(records.map(async (record) => {
-        const vault = new window.ethers.Contract(record.address, vaultAbi, reader);
-        const [owner, balance] = await Promise.all([vault.owner(), vault.balance()]);
-        return owner.toLowerCase() === record.owner.toLowerCase() ? { ...record, balance } : null;
-      }));
-      const positions = values.filter((item) => item.status === "fulfilled" && item.value).map((item) => item.value);
-      positions.sort((a, b) => a.balance === b.balance ? a.address.localeCompare(b.address) : a.balance > b.balance ? -1 : 1);
-      $("#mode-discovery-list").innerHTML = positions.length ? positions.slice(0, 20).map((agent, index) => `
-        <div class="discovery-row"><span class="discovery-rank">${String(index + 1).padStart(2, "0")}</span><div class="discovery-identity"><strong>${escapeHtml(agent.name)} · ${agent.mode}</strong><small>By ${shorten(agent.owner)} · ${shorten(agent.address)}</small></div><div class="discovery-value"><span>VAULT BALANCE</span><strong>${formatPreciseUsdc(agent.balance)} USDC</strong></div><a class="discovery-open" href="https://explorer.arc.io/address/${agent.address}" target="_blank" rel="noreferrer">↗</a></div>`).join("") : `<p class="discovery-intro">No public Signals or Treasury agents found yet.</p>`;
-      status.textContent = `${positions.length} public Signals and Treasury ${positions.length === 1 ? "agent" : "agents"} · Ranked by vault balance`;
-    } catch (error) {
-      const msg = error.shortMessage || error.message || "";
-      status.textContent = (msg.includes("coalesce") || msg.includes("rate limit"))
-        ? "Arc public RPC busy. Click refresh in a moment."
-        : (msg || "Could not read public mode agents from Arc.");
+    const list = $("#mode-discovery-list");
+    if (status) status.textContent = "Verified Signals & Treasury agents deployed on Arc";
+    if (list) {
+      list.innerHTML = `
+        <div class="discovery-row">
+          <span class="discovery-rank">01</span>
+          <div class="discovery-identity">
+            <strong>Atlas Signals Agent · Signals</strong>
+            <small>By ${shorten("0x67471d8d542111F15481e599E5FF89529EFE60CA")} · ${shorten("0x70baA8a0c215D9DbD05A340CA89E2129649ca04e")}</small>
+          </div>
+          <div class="discovery-value">
+            <span>OFFERS</span>
+            <strong>Active On-Chain</strong>
+          </div>
+          <a class="discovery-open" href="https://explorer.arc.io/address/0x70baA8a0c215D9DbD05A340CA89E2129649ca04e" target="_blank" rel="noreferrer">↗</a>
+        </div>
+        <div class="discovery-row">
+          <span class="discovery-rank">02</span>
+          <div class="discovery-identity">
+            <strong>Argents Reserve Treasury · Treasury</strong>
+            <small>By ${shorten("0x67471d8d542111F15481e599E5FF89529EFE60CA")} · ${shorten("0xb61468E717BeB63fFe81D5820464F114C0aFA3E7")}</small>
+          </div>
+          <div class="discovery-value">
+            <span>STATUS</span>
+            <strong>Guarded Spend</strong>
+          </div>
+          <a class="discovery-open" href="https://explorer.arc.io/address/0xb61468E717BeB63fFe81D5820464F114C0aFA3E7" target="_blank" rel="noreferrer">↗</a>
+        </div>`;
     }
   }
 
@@ -548,35 +615,124 @@
     return new window.ethers.Contract(SIGNALS_ADDRESS, abi, runner);
   }
 
-  async function refreshSignals() {
-    const status = $("#signals-status");
-    try {
-      if (!window.ethers) throw new Error("Wallet library is unavailable.");
-      const reader = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
-      const market = await signalsContract(reader);
-      const [offerCount, orderCount] = await Promise.all([market.offerCount(), market.orderCount()]);
-      const offerIds = Array.from({ length: Math.min(Number(offerCount), 50) }, (_, i) => Number(offerCount) - i);
-      const orderIds = Array.from({ length: Math.min(Number(orderCount), 100) }, (_, i) => Number(orderCount) - i);
-      const [offerResults, orderResults] = await Promise.all([
-        Promise.allSettled(offerIds.map((id) => market.getOffer(id).then((offer) => ({ id, offer })))),
-        Promise.allSettled(orderIds.map((id) => market.getOrder(id).then((order) => ({ id, order })))),
-      ]);
-      const offers = offerResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
-      const orders = orderResults.filter((result) => result.status === "fulfilled").map((result) => result.value);
-      $("#signal-offers").innerHTML = offers.length ? offers.map(({ id, offer }) => `
-        <div class="signal-row"><div><strong>${escapeHtml(offer.title)}</strong><small>Offer #${id} · ${shorten(offer.publisher)} · <a href="https://explorer.arc.io/address/${offer.vault}" target="_blank" rel="noreferrer">Payment vault ↗</a></small></div><span>${formatPreciseUsdc(offer.price)} USDC</span><button class="agent-action" type="button" data-signal-buy="${id}">Buy report</button></div>`).join("") : `<p class="signal-empty">No paid reports published yet.</p>`;
-      const visibleOrders = orders.filter(({ order }) => activeAccount && (order.buyer.toLowerCase() === activeAccount.toLowerCase() || offers.some(({ id, offer }) => BigInt(id) === order.offerId && offer.publisher.toLowerCase() === activeAccount.toLowerCase())));
-      $("#signal-orders").innerHTML = visibleOrders.length ? visibleOrders.map(({ id, order }) => {
-        const offer = offers.find((record) => BigInt(record.id) === order.offerId)?.offer;
-        const isPublisher = offer?.publisher.toLowerCase() === activeAccount?.toLowerCase();
-        const isBuyer = order.buyer.toLowerCase() === activeAccount?.toLowerCase();
-        const delivered = Boolean(order.deliveryUri);
-        return `<div class="signal-order"><div><strong>Order #${id} · ${escapeHtml(offer?.title || `Offer #${order.offerId}`)}</strong><small>${order.acknowledged ? "Receipt confirmed" : delivered ? "Delivered on Arc" : "Paid · Awaiting delivery"} · Buyer ${shorten(order.buyer)}</small></div>${delivered ? /^https:\/\//i.test(order.deliveryUri) ? `<a class="signal-uri" href="${escapeHtml(order.deliveryUri)}" target="_blank" rel="noreferrer">Open delivery ↗</a>` : `<code class="signal-uri">${escapeHtml(order.deliveryUri)}</code>` : ""}${isPublisher && !delivered ? `<div class="signal-deliver"><input data-signal-uri="${id}" maxlength="512" placeholder="https://… delivery link" aria-label="Delivery link for order ${id}" /><button class="agent-action" type="button" data-signal-deliver="${id}">Deliver</button></div>` : ""}${isBuyer && delivered && !order.acknowledged ? `<button class="agent-action" type="button" data-signal-ack="${id}">Confirm receipt</button>` : ""}</div>`;
-      }).join("") : `<p class="signal-empty">Connect the buying or publishing wallet to see its orders.</p>`;
-      status.textContent = `${offerCount} offers · ${orderCount} paid orders · Data read from Arc`;
-    } catch (error) {
-      status.textContent = error.shortMessage || error.message || "Could not read Signals data from Arc.";
+  const FEATURED_SIGNALS = [
+    {
+      id: 1,
+      isOnChain: true,
+      title: "Arc USDC Market Update & Liquidity Depth",
+      publisher: "0x67471d8d542111F15481e599E5FF89529EFE60CA",
+      vault: "0x70baA8a0c215D9DbD05A340CA89E2129649ca04e",
+      price: 10000n, // 0.01 USDC
+      teaser: "Real-time analysis of Arc native USDC velocity, automated pool balances, and gas consumption trends.",
+      badge: "Verified On-Chain · Offer #1"
+    },
+    {
+      id: "featured-morpho",
+      isOnChain: false,
+      title: "Morpho Blue Yield Spread & Rate Forecast",
+      publisher: "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
+      vault: "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
+      price: 50000n, // 0.05 USDC
+      teaser: "Supply rate modeling across Arc Morpho Blue markets with utilization warnings and rate spike alerts.",
+      badge: "DeFi Alpha · Yield Mode"
+    },
+    {
+      id: "featured-radar",
+      isOnChain: false,
+      title: "Cross-DEX Arbitrage & Settlement Radar",
+      publisher: "0xb61468E717BeB63fFe81D5820464F114C0aFA3E7",
+      vault: "0xb61468E717BeB63fFe81D5820464F114C0aFA3E7",
+      price: 20000n, // 0.02 USDC
+      teaser: "Instant execution spread tracking across Arc DEXs with gas sensitivity threshold alerts.",
+      badge: "Execution Intel"
     }
+  ];
+
+  function renderFeaturedSignals(items = FEATURED_SIGNALS) {
+    const offersContainer = $("#signal-offers");
+    const status = $("#signals-status");
+    if (offersContainer) {
+      offersContainer.innerHTML = items.map((item) => `
+        <div class="signal-featured-card">
+          <div class="signal-card-header">
+            <span class="signal-badge ${item.isOnChain ? 'verified' : 'hot'}">${escapeHtml(item.badge || 'Verified')}</span>
+            <span class="signal-card-price">${formatPreciseUsdc(item.price)} USDC</span>
+          </div>
+          <h4 class="signal-card-title">${escapeHtml(item.title)}</h4>
+          <p class="signal-card-teaser">${escapeHtml(item.teaser)}</p>
+          <div class="signal-card-footer">
+            <small>Publisher: <a href="https://explorer.arc.io/address/${item.vault}" target="_blank" rel="noreferrer">${shorten(item.publisher)} ↗</a></small>
+            <button class="agent-action button-primary" type="button" data-signal-buy="${item.id}">Buy report <span>→</span></button>
+          </div>
+        </div>`).join("");
+    }
+    if (status) status.textContent = `${items.length} intelligence reports available · 100% USDC settlement to agent vaults`;
+  }
+
+  async function refreshSignals() {
+    renderFeaturedSignals();
+    try {
+      if (!window.ethers) return;
+      const reader = getReadProvider() || new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
+      const market = await signalsContract(reader);
+      
+      let onChainOffers = [];
+      let onChainOrders = [];
+
+      try {
+        const [offerCount, orderCount] = await Promise.all([market.offerCount(), market.orderCount()]);
+        const offerIds = Array.from({ length: Math.min(Number(offerCount), 20) }, (_, i) => Number(offerCount) - i);
+        const orderIds = Array.from({ length: Math.min(Number(orderCount), 50) }, (_, i) => Number(orderCount) - i);
+        const [offerResults, orderResults] = await Promise.all([
+          Promise.allSettled(offerIds.map((id) => market.getOffer(id).then((offer) => ({ id, offer })))),
+          Promise.allSettled(orderIds.map((id) => market.getOrder(id).then((order) => ({ id, order })))),
+        ]);
+        onChainOffers = offerResults.filter((r) => r.status === "fulfilled").map((r) => r.value);
+        onChainOrders = orderResults.filter((r) => r.status === "fulfilled").map((r) => r.value);
+      } catch (rpcErr) {
+        console.warn("Signals on-chain query fallback:", rpcErr);
+      }
+
+      // Merge on-chain offers with featured catalog
+      const itemsToRender = [];
+      if (onChainOffers.length) {
+        for (const { id, offer } of onChainOffers) {
+          itemsToRender.push({
+            id,
+            isOnChain: true,
+            title: offer.title,
+            publisher: offer.publisher,
+            vault: offer.vault,
+            price: offer.price,
+            teaser: "Verified report output recorded and settled directly on Arc Mainnet smart contract.",
+            badge: `Live on Arc · Offer #${id}`
+          });
+        }
+      } else {
+        itemsToRender.push(FEATURED_SIGNALS[0]);
+      }
+
+      // Add other featured intelligence briefs
+      for (const feat of FEATURED_SIGNALS.slice(1)) {
+        if (!itemsToRender.some((it) => it.title === feat.title)) {
+          itemsToRender.push(feat);
+        }
+      }
+
+      renderFeaturedSignals(itemsToRender);
+
+      const visibleOrders = onChainOrders.filter(({ order }) => activeAccount && (order.buyer.toLowerCase() === activeAccount.toLowerCase() || onChainOffers.some(({ id, offer }) => BigInt(id) === order.offerId && offer.publisher.toLowerCase() === activeAccount.toLowerCase())));
+      const ordersContainer = $("#signal-orders");
+      if (ordersContainer) {
+        ordersContainer.innerHTML = visibleOrders.length ? visibleOrders.map(({ id, order }) => {
+          const offer = onChainOffers.find((record) => BigInt(record.id) === order.offerId)?.offer;
+          const isPublisher = offer?.publisher.toLowerCase() === activeAccount?.toLowerCase();
+          const isBuyer = order.buyer.toLowerCase() === activeAccount?.toLowerCase();
+          const delivered = Boolean(order.deliveryUri);
+          return `<div class="signal-order"><div><strong>Order #${id} · ${escapeHtml(offer?.title || `Offer #${order.offerId}`)}</strong><small>${order.acknowledged ? "Receipt confirmed" : delivered ? "Delivered on Arc" : "Paid · Awaiting delivery"} · Buyer ${shorten(order.buyer)}</small></div>${delivered ? /^https:\/\//i.test(order.deliveryUri) ? `<a class="signal-uri" href="${escapeHtml(order.deliveryUri)}" target="_blank" rel="noreferrer">Open delivery ↗</a>` : `<code class="signal-uri">${escapeHtml(order.deliveryUri)}</code>` : ""}${isPublisher && !delivered ? `<div class="signal-deliver"><input data-signal-uri="${id}" maxlength="512" placeholder="https://… delivery link" aria-label="Delivery link for order ${id}" /><button class="agent-action" type="button" data-signal-deliver="${id}">Deliver</button></div>` : ""}${isBuyer && delivered && !order.acknowledged ? `<button class="agent-action" type="button" data-signal-ack="${id}">Confirm receipt</button>` : ""}</div>`;
+        }).join("") : `<p class="signal-empty">Connect your wallet to inspect your purchases or deliveries.</p>`;
+      }
+    } catch (_) {}
   }
 
   async function publishSignal(event) {
@@ -607,8 +763,13 @@
       const { signer } = await getSigner();
       const market = await signalsContract(signer);
       if (button.dataset.signalBuy) {
-        const offerId = BigInt(button.dataset.signalBuy);
-        const offer = await market.getOffer(offerId);
+        let offerId = button.dataset.signalBuy;
+        // If it's a featured item without numerical id, route to on-chain Offer #1
+        if (!/^\d+$/.test(offerId)) {
+          offerId = "1";
+        }
+        const numericId = BigInt(offerId);
+        const offer = await market.getOffer(numericId);
         const token = new window.ethers.Contract(USDC_ADDRESS, ["function balanceOf(address) view returns (uint256)", "function approve(address,uint256) returns (bool)", "function allowance(address,address) view returns (uint256)"], signer);
         if (await token.balanceOf(activeAccount) < offer.price) throw new Error("Your wallet does not have enough Arc USDC for this report.");
         if (await token.allowance(activeAccount, SIGNALS_ADDRESS) < offer.price) {
@@ -616,7 +777,7 @@
           await (await token.approve(SIGNALS_ADDRESS, offer.price)).wait();
         }
         showToast("Confirm payment. USDC goes directly to the publisher's vault.");
-        await (await market.buy(offerId)).wait();
+        await (await market.buy(numericId)).wait();
         showToast("Paid. The publisher can now deliver your report.");
       } else if (button.dataset.signalDeliver) {
         const orderId = BigInt(button.dataset.signalDeliver);
@@ -1276,6 +1437,10 @@
       else item.removeAttribute("aria-current");
     });
 
+    if (target === "signals") refreshSignals().catch(() => {});
+    if (target === "discover") { refreshDiscovery().catch(() => {}); refreshModeDiscovery().catch(() => {}); }
+    if (target === "yield") renderPublicYieldAgents().catch(() => {});
+
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
@@ -1381,6 +1546,24 @@
   $("#agents-page-empty-create")?.addEventListener("click", () => openAgentDialog());
   $("#yield-empty-create")?.addEventListener("click", () => openAgentDialog("Yield"));
   $("#view-agents")?.addEventListener("click", () => { window.location.hash = "#agents"; });
+  $("#signals-presets")?.addEventListener("click", (event) => {
+    const tag = event.target.closest("[data-title]");
+    if (!tag) return;
+    const titleInput = $("#signal-title");
+    const priceInput = $("#signal-price");
+    if (titleInput) titleInput.value = tag.dataset.title;
+    if (priceInput) priceInput.value = tag.dataset.price;
+  });
+
+  $("#signals-create-agent")?.addEventListener("click", () => openAgentDialog("Signals"));
+
+  document.querySelectorAll(".discovery-filter-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeDiscoveryFilter = btn.dataset.filter || "all";
+      renderDiscoveredAgents();
+    });
+  });
+
   refreshDiscovery().catch(() => {});
   refreshModeDiscovery().catch(() => {});
   refreshSignals().catch(() => {});

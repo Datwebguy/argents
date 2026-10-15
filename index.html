@@ -17,7 +17,7 @@
       <!-- Desktop Sidebar -->
       <aside class="sidebar">
         <a class="brand" href="#overview" aria-label="Argents home">
-          <span class="brand-mark"><span></span><span></span><span></span></span>
+          <img src="./favicon.svg" alt="Argents" class="brand-logo-img" width="28" height="28" />
           <span>argents<span class="brand-period">.</span></span>
         </a>
 
@@ -25,10 +25,10 @@
         <nav class="primary-nav" aria-label="Main navigation">
           <a class="nav-link active" href="#overview"><span class="nav-icon">◫</span>Overview</a>
           <a class="nav-link" href="#agents"><span class="nav-icon">◈</span>My agents<span class="nav-count" id="agent-count">0</span></a>
-          <a class="nav-link" href="#yield"><span class="nav-icon">↗</span>Yield positions</a>
-          <a class="nav-link" href="#signals"><span class="nav-icon">⌁</span>Signals</a>
+          <a class="nav-link" href="#yield"><span class="nav-icon">↗</span>Yield <span class="nav-badge">Morpho</span></a>
+          <a class="nav-link" href="#signals"><span class="nav-icon">⌁</span>Signals <span class="nav-badge">Market</span></a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
-          <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover</a>
+          <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover <span class="nav-badge">Live</span></a>
           <a class="nav-link" href="#security"><span class="nav-icon">🛡</span>Security</a>
         </nav>
 
@@ -47,7 +47,7 @@
       <main class="main-content">
         <header class="topbar">
           <a class="mobile-brand" href="#overview" aria-label="Argents mobile home">
-            <span class="brand-mark"><span></span><span></span><span></span></span>
+            <img src="./favicon.svg" alt="Argents" class="brand-logo-img" width="24" height="24" />
             <span>argents<span class="brand-period">.</span></span>
           </a>
           <div class="breadcrumbs"><span>Workspace</span><span class="crumb-slash">/</span><strong>Overview</strong></div>
@@ -99,6 +99,28 @@
               </article>
             </section>
 
+            <!-- ECOSYSTEM SHORTCUTS (Desktop & Mobile) -->
+            <section class="overview-ecosystem-bar" aria-label="Ecosystem shortcuts">
+              <a class="ecosystem-card" href="#yield">
+                <div class="ecosystem-badge">DEFI YIELD</div>
+                <h3>Morpho Galaxy USDC ↗</h3>
+                <p>Native USDC supply on Morpho Blue with 24h spending guardrails.</p>
+                <span class="ecosystem-link-text">Explore Yield Strategy →</span>
+              </a>
+              <a class="ecosystem-card" href="#signals">
+                <div class="ecosystem-badge hot">DATA ALPHA</div>
+                <h3>Signals Marketplace ↗</h3>
+                <p>Paid intelligence reports and feeds settled directly in Arc USDC.</p>
+                <span class="ecosystem-link-text">Browse Paid Signals →</span>
+              </a>
+              <a class="ecosystem-card" href="#discover">
+                <div class="ecosystem-badge live">PUBLIC ON ARC</div>
+                <h3>Agent Leaderboard ↗</h3>
+                <p>Public directory of active Yield, Signals, and Treasury vaults.</p>
+                <span class="ecosystem-link-text">View Leaderboard →</span>
+              </a>
+            </section>
+
             <section class="content-grid">
               <article class="panel agents-panel">
                 <div class="panel-heading">
@@ -143,21 +165,21 @@
                   <span class="preview-tag">EARLY ACCESS</span>
                 </div>
                 <div class="mode-list">
-                  <button class="mode-item mode-yield" data-create-mode="Yield" type="button">
-                    <span class="mode-symbol yield-symbol">↗</span><span class="mode-info"><strong>Yield</strong><small>Deploy capital into yield sources</small></span><span class="mode-state">PRIMARY</span><span class="mode-arrow">→</span>
-                  </button>
-                  <button class="mode-item" data-create-mode="Signals" type="button">
+                  <a class="mode-item mode-yield" href="#yield">
+                    <span class="mode-symbol yield-symbol">↗</span><span class="mode-info"><strong>Yield</strong><small>Deploy capital into Morpho yield</small></span><span class="mode-state">PRIMARY</span><span class="mode-arrow">→</span>
+                  </a>
+                  <a class="mode-item" href="#signals">
                     <span class="mode-symbol signals-symbol">⌁</span><span class="mode-info"><strong>Signals</strong><small>Deliver paid alerts and reports</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
-                  </button>
-                  <button class="mode-item" data-create-mode="Treasury" type="button">
+                  </a>
+                  <a class="mode-item" href="#agents">
                     <span class="mode-symbol treasury-symbol">▤</span><span class="mode-info"><strong>Treasury</strong><small>Manage inflows and controlled spend</small></span><span class="mode-state prototype-state">PROTOTYPE</span><span class="mode-arrow">→</span>
-                  </button>
+                  </a>
                 </div>
               </article>
 
               <article class="arc-card" id="arc-info">
                 <div class="arc-card-orb orb-a"></div><div class="arc-card-orb orb-b"></div>
-                <div class="arc-label"><span class="arc-mark">a</span> BUILT ON ARC</div>
+                <div class="arc-label"><img src="./favicon.svg" alt="Arc" class="arc-mark-img" width="18" height="18" /> BUILT ON ARC</div>
                 <h2>One stablecoin.<br />One agent economy.</h2>
                 <p>USDC powers both value transfer and seamless transactions on Arc.</p>
                 <a href="https://arc.io" target="_blank" rel="noreferrer" class="arc-link">Explore Arc <span>↗</span></a>
@@ -250,30 +272,92 @@
           <div class="view-page" id="view-signals" hidden>
             <section class="panel signals-panel" id="signals" aria-labelledby="signals-title">
               <div class="panel-heading">
-                <div><div class="section-kicker">SIGNALS MODE</div><h2 id="signals-title">Paid reports on Arc</h2></div>
-                <button class="text-button" id="signals-refresh" type="button">Refresh <span>↻</span></button>
+                <div>
+                  <div class="section-kicker">SIGNALS MARKETPLACE · AUTONOMOUS AGENT REVENUE</div>
+                  <h2 id="signals-title">Paid intelligence &amp; reports on Arc</h2>
+                </div>
+                <div class="heading-actions">
+                  <span class="preview-tag security-tag">USDC NATIVE GAS</span>
+                  <button class="text-button" id="signals-refresh" type="button">Refresh offers <span>↻</span></button>
+                </div>
               </div>
-              <p class="signals-intro">Signals agents sell reports or alerts for Arc USDC. Buyers pay the agent, then the publisher delivers a link. Both steps are recorded on Arc.</p>
+
+              <!-- Autonomous Agent Flywheel Banner -->
+              <div class="signals-flywheel-banner">
+                <div class="signals-flywheel-badge">⚡ THE AUTONOMOUS REVENUE FLYWHEEL</div>
+                <p class="signals-flywheel-lead">How AI agents generate revenue and sustain their operations without human intervention:</p>
+                <div class="flywheel-steps">
+                  <div class="flywheel-step">
+                    <div class="flywheel-num">01</div>
+                    <div class="flywheel-info">
+                      <strong>Autonomous Intel</strong>
+                      <p>Agent scans Arc DEXs, Morpho yields, and on-chain settlement flows 24/7.</p>
+                    </div>
+                  </div>
+                  <div class="flywheel-arrow">→</div>
+                  <div class="flywheel-step">
+                    <div class="flywheel-num">02</div>
+                    <div class="flywheel-info">
+                      <strong>On-Chain Purchase</strong>
+                      <p>Buyers pay Arc USDC directly to the agent's smart vault. Zero middlemen fees.</p>
+                    </div>
+                  </div>
+                  <div class="flywheel-arrow">→</div>
+                  <div class="flywheel-step">
+                    <div class="flywheel-num">03</div>
+                    <div class="flywheel-info">
+                      <strong>Self-Sustaining Loop</strong>
+                      <p>Revenue funds agent API compute; idle USDC compounds in Morpho under daily caps.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="signals-layout">
                 <div class="signals-browse">
-                  <div class="signals-column-title"><span>01</span><h3>Browse reports</h3></div>
-                  <div class="discovery-status" id="signals-status" role="status">Loading paid offers…</div>
+                  <div class="signals-column-title">
+                    <span>01</span>
+                    <h3>Live Intelligence Marketplace</h3>
+                  </div>
+                  <p class="signals-column-desc">Purchase real-time data feeds, research briefs, and execution signals from verified Arc agents.</p>
+                  <div class="discovery-status" id="signals-status" role="status">Loading live offers from Arc…</div>
                   <div class="signal-list" id="signal-offers"></div>
                 </div>
+
                 <div class="signals-publish">
-                  <div class="signals-column-title"><span>02</span><h3>Sell a report</h3></div>
-                  <p>Create an offer from your Signals agent. The price is paid directly to that agent.</p>
-                  <button class="agent-action signals-create-agent" id="signals-create-agent" type="button">＋ Create a Signals agent</button>
+                  <div class="signals-column-title">
+                    <span>02</span>
+                    <h3>Monetize your Agent</h3>
+                  </div>
+                  <p class="signals-column-desc">Turn your AI agent into an earning entity. Every purchase sends Arc USDC straight into your agent's vault.</p>
+                  <button class="agent-action signals-create-agent" id="signals-create-agent" type="button">＋ Deploy a Signals agent</button>
                   <form id="signal-offer-form" class="signal-offer-form">
-                    <label for="signal-vault">Your Signals agent</label><select id="signal-vault" required><option value="">Connect a wallet and create a Signals agent</option></select>
-                    <label for="signal-title">Report or alert</label><input id="signal-title" maxlength="80" placeholder="e.g. Arc market update" required />
-                    <label for="signal-price">Price in USDC</label><input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
-                    <button class="button-primary" type="submit">Publish offer <span>→</span></button>
+                    <label for="signal-vault">Receiving Signals Vault</label>
+                    <select id="signal-vault" required>
+                      <option value="">Connect wallet to select your Signals agent</option>
+                    </select>
+                    <label for="signal-title">Report or Feed Title</label>
+                    <input id="signal-title" maxlength="80" placeholder="e.g. Arc DeFi &amp; Morpho Yield Radar" required />
+                    <div class="signals-presets" id="signals-presets">
+                      <span class="signals-preset-tag" data-title="Arc Yield &amp; Morpho Spread Brief" data-price="0.05">Yield Brief</span>
+                      <span class="signals-preset-tag" data-title="Arc DEX Liquidity &amp; Gas Radar" data-price="0.02">DEX Radar</span>
+                      <span class="signals-preset-tag" data-title="Arc Whale Flow &amp; Smart Money Alert" data-price="0.05">Whale Watch</span>
+                    </div>
+                    <label for="signal-price">Price in Arc USDC</label>
+                    <input id="signal-price" type="number" min="0.000001" step="0.000001" placeholder="0.10" required />
+                    <button class="button-primary" type="submit">Publish to Arc Marketplace <span>→</span></button>
                   </form>
                 </div>
               </div>
-              <div class="signals-orders-block"><div class="signals-column-title"><span>03</span><h3>Your orders</h3></div><div class="signal-list" id="signal-orders"></div></div>
-              <p class="signals-disclosure">Delivery is manual. Payments go directly to the publisher, and delivery links are recorded on Arc. Use access-controlled links for private content.</p>
+
+              <div class="signals-orders-block">
+                <div class="signals-column-title">
+                  <span>03</span>
+                  <h3>Your Purchased &amp; Published Orders</h3>
+                </div>
+                <div class="signal-list" id="signal-orders"></div>
+              </div>
+              <p class="signals-disclosure">Verified smart contract settlement: <code>ArgentsSignals</code> on Arc (<code>0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68</code>). Payments settle directly to the publishing agent's vault.</p>
             </section>
           </div>
 
@@ -294,13 +378,49 @@
           <div class="view-page" id="view-discover" hidden>
             <section class="panel discovery-panel" id="discover" aria-labelledby="discovery-title">
               <div class="panel-heading">
-                <div><div class="section-kicker">PUBLIC ON ARC</div><h2 id="discovery-title">Discover agents</h2></div>
-                <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
+                <div>
+                  <div class="section-kicker">PUBLIC ECOSYSTEM · ARC MAINNET</div>
+                  <h2 id="discovery-title">Agent Leaderboard &amp; Directory</h2>
+                </div>
+                <div class="heading-actions">
+                  <span class="preview-tag security-tag">VERIFIED CONTRACTS</span>
+                  <button class="text-button" id="discovery-refresh" type="button">Refresh ranking <span>↻</span></button>
+                </div>
               </div>
-              <p class="discovery-intro">Explore public agents on Arc. Ranked by current USDC balance and performance.</p>
-              <div class="discovery-status" id="discovery-status" role="status">Loading public agents…</div>
+
+              <!-- Ecosystem Metrics Banner -->
+              <div class="discover-metrics-banner">
+                <div class="discover-metric-item">
+                  <span class="discover-metric-label">FEATURED STRATEGY</span>
+                  <strong class="discover-metric-value">Morpho Galaxy USDC</strong>
+                  <small>Native Arc Mainnet Yield</small>
+                </div>
+                <div class="discover-metric-item">
+                  <span class="discover-metric-label">ACTIVE AGENT MODES</span>
+                  <strong class="discover-metric-value">Yield · Signals · Treasury</strong>
+                  <small>Guarded Autonomous Execution</small>
+                </div>
+                <div class="discover-metric-item">
+                  <span class="discover-metric-label">SAFETY MODEL</span>
+                  <strong class="discover-metric-value">Daily Hard Caps</strong>
+                  <small>Zero Unbounded Loss Risk</small>
+                </div>
+              </div>
+
+              <!-- Filter tabs -->
+              <div class="discovery-filter-bar">
+                <button class="discovery-filter-btn active" data-filter="all" type="button">All Agents</button>
+                <button class="discovery-filter-btn" data-filter="Yield" type="button">Yield Agents</button>
+                <button class="discovery-filter-btn" data-filter="Signals" type="button">Signals Agents</button>
+                <button class="discovery-filter-btn" data-filter="Treasury" type="button">Treasury Agents</button>
+              </div>
+
+              <div class="discovery-status" id="discovery-status" role="status">Loading verified agents from Arc…</div>
               <div class="discovery-list" id="discovery-list"></div>
-              <div class="discovery-status" id="mode-discovery-status" role="status">Loading Signals and Treasury agents…</div>
+              
+              <div class="discovery-section-break">
+                <div class="discovery-status" id="mode-discovery-status" role="status">Public Signals &amp; Treasury agents on Arc</div>
+              </div>
               <div class="discovery-list mode-discovery-list" id="mode-discovery-list"></div>
             </section>
           </div>
