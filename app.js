@@ -175,6 +175,10 @@
     if (yieldEmpty) yieldEmpty.hidden = yieldAgents.length !== 0;
     const yieldList = $("#yield-positions-list");
     if (yieldList) yieldList.hidden = yieldAgents.length === 0;
+    if (yieldAgents.length === 0) {
+      $("#yield-result").innerHTML = 'Morpho<span class="metric-unit"> Galaxy</span>';
+      $("#yield-result-foot").innerHTML = '<a href="#yield" style="color:var(--lime); text-decoration:none;">View active Arc yield strategy ↗</a>';
+    }
     $("#yield-positions-list").innerHTML = yieldAgents.map((agent) => `
       <div class="yield-position-card" data-position-for="${escapeHtml(agent.address.toLowerCase())}">
         <div class="yield-position-heading"><div><strong>${escapeHtml(agent.name)}</strong><small>Galaxy USDC · Morpho on Arc</small></div><a href="https://explorer.arc.io/address/${encodeURIComponent(agent.address)}" target="_blank" rel="noreferrer">View vault ↗</a></div>
@@ -289,7 +293,7 @@
 
   function getWallet() {
     if (reownModal) {
-      const p = reownModal.getProvider?.();
+      const p = reownModal.getWalletProvider?.() || reownModal.getProvider?.();
       if (p) return p;
     }
     if (eip6963Providers.length > 0 && eip6963Providers[0].provider) {
@@ -308,6 +312,14 @@
       if (window.okxwallet) return window.okxwallet;
     }
     return null;
+  }
+
+  let _readProvider = null;
+  function getReadProvider() {
+    if (!_readProvider && typeof window !== "undefined" && window.ethers) {
+      _readProvider = new window.ethers.JsonRpcProvider(ARC.rpcUrls[0], ARC.decimalId);
+    }
+    return _readProvider;
   }
 
   function setupWalletListeners(wallet) {
@@ -360,7 +372,8 @@
   }
 
   async function refreshAgentBalances(agents = visibleAgents()) {
-    const browserProvider = provider();
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
     const abis = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault")]);
     const results = await Promise.allSettled(agents.map(async (agent) => {
       const vault = new window.ethers.Contract(agent.address, abis[isYieldV2(agent) ? 1 : 0].abi, browserProvider);
@@ -625,7 +638,8 @@
 
   async function refreshActivity(agents = visibleAgents()) {
     if (!agents.length || !activeAccount) return;
-    const browserProvider = provider();
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
     const [legacy, yieldVault] = await Promise.all([loadArtifacts("ArgentsAgentVault"), loadArtifacts("ArgentsYieldVault")]);
     const latestBlock = await browserProvider.getBlockNumber();
     const eventGroups = await Promise.allSettled(agents.filter((agent) => Number.isInteger(agent.createdBlock)).map(async (agent) => {
@@ -691,7 +705,8 @@
   async function restoreAgentsFromChain(account) {
     const factoryAddress = PLATFORM_FACTORY_ADDRESS || localStorage.getItem(`${FACTORY_PREFIX}${account.toLowerCase()}`);
     if (!factoryAddress) return;
-    const browserProvider = provider();
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
     const vaultArtifact = await loadArtifacts("ArgentsAgentVault");
     // Recover the original deployed vault independently of the factory log query.
     // Some RPC providers reject large historical log ranges even when direct reads work.
@@ -739,7 +754,8 @@
   }
 
   async function restoreYieldAgents(account) {
-    const browserProvider = provider();
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
     const factoryAbi = (await loadArtifacts("ArgentsYieldFactory")).abi;
     const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
     const factory = new window.ethers.Contract(YIELD_FACTORY_ADDRESS, factoryAbi, browserProvider);
@@ -762,7 +778,8 @@
   }
 
   async function restoreModeAgents(account) {
-    const browserProvider = provider();
+    const browserProvider = getReadProvider() || (getWallet() ? provider() : null);
+    if (!browserProvider) return;
     const factoryAbi = (await loadArtifacts("ArgentsModeFactory")).abi;
     const vaultAbi = (await loadArtifacts("ArgentsAgentVault")).abi;
     const factory = new window.ethers.Contract(MODE_FACTORY_ADDRESS, factoryAbi, browserProvider);
@@ -778,50 +795,124 @@
     }));
   }
 
+  
+  const GENESIS_YIELD_AGENT = {
+    address: "0x9eac69A950a13B40BE06547bE833Df653FE32Db8",
+    name: "Argents Yield Genesis",
+    mode: "Morpho Yield",
+    dailyLimit: "100000000",
+    strategy: "Galaxy USDC on Morpho",
+    strategyAddress: YIELD_STRATEGY_ADDRESS,
+  };
+
+  async function renderPublicYieldAgents() {
+    const list = $("#yield-public-list");
+    if (!list) return;
+
+    let idleText = "0.00 USDC";
+    let investedText = "0.00 USDC";
+    let totalText = "0.00 USDC";
+    try {
+      const readRpc = getReadProvider();
+      if (readRpc) {
+        const bal = await readRpc.getBalance(GENESIS_YIELD_AGENT.address);
+        idleText = `${formatUsdc(bal, 18)} USDC`;
+        totalText = idleText;
+        try {
+          const vaultAbi = (await loadArtifacts("ArgentsYieldVault")).abi;
+          const vault = new window.ethers.Contract(GENESIS_YIELD_AGENT.address, vaultAbi, readRpc);
+          const invested = await vault.strategyAssets().catch(() => 0n);
+          if (invested) {
+            investedText = `${formatUsdc(invested, 18)} USDC`;
+            totalText = `${formatUsdc(BigInt(bal) + BigInt(invested), 18)} USDC`;
+          }
+        } catch (_) {}
+      }
+    } catch (err) {
+      console.warn("Could not read public yield stats:", err);
+    }
+
+    list.innerHTML = `
+      <div class="public-yield-card">
+        <div class="public-yield-top">
+          <div class="public-yield-title">
+            <strong>${GENESIS_YIELD_AGENT.name}</strong>
+            <span class="public-tag">VERIFIED ON ARC</span>
+          </div>
+          <div class="public-yield-actions">
+            <button class="agent-action" data-copy-vault="${GENESIS_YIELD_AGENT.address}" type="button">Copy address</button>
+            <a class="agent-explorer" href="https://explorer.arc.io/address/${GENESIS_YIELD_AGENT.address}" target="_blank" rel="noreferrer" aria-label="Open on Arc Explorer">↗</a>
+          </div>
+        </div>
+        <p class="yield-position-note" style="margin-top:0; border-top:0; padding-top:0;">Strategy: <a href="https://explorer.arc.io/address/${YIELD_STRATEGY_ADDRESS}" target="_blank" rel="noreferrer">${GENESIS_YIELD_AGENT.strategy} ↗</a> · Daily spend limit: 100 USDC/day</p>
+        <div class="public-yield-meta">
+          <div><span>Total Value</span><strong>${totalText}</strong></div>
+          <div><span>Invested in Morpho</span><strong>${investedText}</strong></div>
+          <div><span>Idle in Agent</span><strong>${idleText}</strong></div>
+          <div><span>Daily Outflow Cap</span><strong>100 USDC/day</strong></div>
+        </div>
+      </div>
+    `;
+  }
+
   async function syncWallet(account = activeAccount) {
-    const wallet = getWallet();
-    if (!wallet || !account) return;
+    if (!account) return;
     if (walletMenuAddress.textContent && walletMenuAddress.textContent.toLowerCase() !== account.toLowerCase()) closeWalletMenu();
     activeAccount = account;
+    localStorage.removeItem(MANUAL_DISCONNECT_KEY);
     connectButton.classList.add("connected");
     connectLabel.textContent = shorten(account);
     connectButton.title = "Wallet options";
     walletMenuAddress.textContent = account;
     walletControls.hidden = false;
     walletAddress.textContent = account;
-    const chainId = await wallet.request({ method: "eth_chainId" });
-    if (activeAccount?.toLowerCase() !== account.toLowerCase() || localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
-    if (chainId.toLowerCase() !== ARC.id) {
-      chainStatus.textContent = "Switch to Arc Mainnet";
-      chainDot.classList.remove("is-live");
-      balanceValue.innerHTML = `—<span class="metric-unit"> USDC</span>`;
-      walletFoot.textContent = "Wallet is connected to another network";
-      $("#network-caption").textContent = "Switch to Arc Mainnet";
-      return;
-    }
-
-    const [balanceHex, blockHex] = await Promise.all([
-      wallet.request({ method: "eth_getBalance", params: [account, "latest"] }),
-      wallet.request({ method: "eth_blockNumber" }),
-    ]);
-    const blockNumber = Number(BigInt(blockHex)).toLocaleString("en-US");
-    try {
-      await restoreAgentsFromChain(account).catch(() => {});
-      await restoreYieldAgents(account).catch(() => {});
-      await restoreModeAgents(account).catch(() => {});
-    } catch {
-      // Wallet balance and network status remain useful if factory reads are unavailable.
-    }
-    if (activeAccount?.toLowerCase() !== account.toLowerCase() || localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
-    balanceValue.innerHTML = `${formatUsdc(BigInt(balanceHex), 18)}<span class="metric-unit"> USDC</span>`;
-    walletFoot.innerHTML = `<span class="status-dash"></span>Live balance · Arc Network`;
     chainStatus.textContent = "Connected to Arc";
     chainDot.classList.add("is-live");
     $("#network-caption").textContent = "USDC native";
     $("#activity-body").innerHTML = `<div class="activity-empty-icon">✓</div>
-      <p>Wallet connected. Ready to deploy and fund agents.</p>
-      <a class="inline-link" href="https://explorer.arc.io/address/${account}" target="_blank" rel="noreferrer">View in explorer <span>↗</span></a>`;
+      <p>Wallet connected: <strong>${shorten(account)}</strong></p>
+      <a class="inline-link" href="https://explorer.arc.io/address/${account}" target="_blank" rel="noreferrer">View in Arc Explorer <span>↗</span></a>`;
+
+    // Safely verify network if wallet is available
+    const wallet = getWallet();
+    if (wallet && wallet.request) {
+      try {
+        const chainIdRaw = await wallet.request({ method: "eth_chainId" });
+        const chainIdNum = typeof chainIdRaw === "string" ? (chainIdRaw.startsWith("0x") ? parseInt(chainIdRaw, 16) : parseInt(chainIdRaw, 10)) : Number(chainIdRaw);
+        if (chainIdNum && chainIdNum !== ARC.decimalId) {
+          chainStatus.textContent = "Switch to Arc Mainnet";
+          chainDot.classList.remove("is-live");
+          walletFoot.textContent = "Wallet is on another network";
+          $("#network-caption").textContent = "Switch to Arc Mainnet";
+        }
+      } catch (err) {
+        console.warn("Chain ID check error:", err);
+      }
+    }
+
+    // Read live balance reliably from Arc RPC
+    try {
+      const readRpc = getReadProvider();
+      if (readRpc) {
+        const balance = await readRpc.getBalance(account);
+        balanceValue.innerHTML = `${formatUsdc(balance, 18)}<span class="metric-unit"> USDC</span>`;
+        walletFoot.innerHTML = `<span class="status-dash"></span>Live balance · Arc Mainnet`;
+      }
+    } catch (err) {
+      console.warn("Public balance read error:", err);
+    }
+
+    // Restore on-chain agents
+    try {
+      await restoreAgentsFromChain(account).catch(() => {});
+      await restoreYieldAgents(account).catch(() => {});
+      await restoreModeAgents(account).catch(() => {});
+    } catch (err) {
+      console.warn("Restore agents error:", err);
+    }
+
     renderAgents();
+    renderPublicYieldAgents().catch(() => {});
     refreshActivity(visibleAgents()).catch(() => {});
     refreshSignals().catch(() => {});
   }
@@ -1293,4 +1384,15 @@
   refreshDiscovery().catch(() => {});
   refreshModeDiscovery().catch(() => {});
   refreshSignals().catch(() => {});
+
+  $("#yield-strategy-deploy")?.addEventListener("click", () => openAgentDialog("Yield"));
+  $("#yield-public-refresh")?.addEventListener("click", () => renderPublicYieldAgents());
+  $("#yield-public-list")?.addEventListener("click", (event) => {
+    const copyBtn = event.target.closest("[data-copy-vault]");
+    if (copyBtn) {
+      navigator.clipboard.writeText(copyBtn.dataset.copyVault).then(() => showToast("Agent vault address copied. Send Arc USDC only.")).catch(() => showToast("Could not copy the vault address.", "error"));
+    }
+  });
+  renderPublicYieldAgents().catch(() => {});
+
 })();

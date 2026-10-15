@@ -189,11 +189,44 @@
             </section>
           </div>
 
-          <!-- VIEW 3: YIELD POSITIONS -->
+          <!-- VIEW 3: YIELD STRATEGIES & POSITIONS -->
           <div class="view-page" id="view-yield" hidden>
+            <!-- Available Yield Strategy Spotlight -->
+            <section class="panel yield-strategy-panel">
+              <div class="panel-heading">
+                <div><div class="section-kicker">AVAILABLE YIELD STRATEGY · MORPHO ON ARC</div><h2>Galaxy USDC Strategy</h2></div>
+                <span class="preview-tag security-tag">ACTIVE ON ARC</span>
+              </div>
+              <div class="yield-strategy-body">
+                <p class="yield-strategy-desc">
+                  Put idle USDC to work in the <strong>Morpho Galaxy USDC</strong> pool on Arc Mainnet. Your autonomous agent monitors idle reserves, deploys funds for yield, and strictly bounds daily withdrawals under immutable smart contract limits.
+                </p>
+                <div class="yield-strategy-specs">
+                  <div class="spec-card"><span>Underlying Protocol</span><strong>Morpho Blue (Arc)</strong></div>
+                  <div class="spec-card"><span>Target Asset</span><strong>Native Arc USDC (18 dec)</strong></div>
+                  <div class="spec-card"><span>Guardrail</span><strong>Configurable Daily Cap</strong></div>
+                  <div class="spec-card"><span>Liquidity Recall</span><strong>Deterministic Shares</strong></div>
+                </div>
+                <div class="yield-strategy-actions">
+                  <button class="button-primary" id="yield-strategy-deploy" type="button"><span>＋</span> Deploy an agent to this strategy</button>
+                  <a class="text-button" href="https://explorer.arc.io/address/0x8E357432CC12ff425c36432F312968aEb16112AF" target="_blank" rel="noreferrer">View Morpho Galaxy Strategy on Arc Explorer <span>↗</span></a>
+                </div>
+              </div>
+            </section>
+
+            <!-- Public Yield Agents on Arc -->
+            <section class="panel public-yield-panel">
+              <div class="panel-heading">
+                <div><div class="section-kicker">PUBLIC YIELD VAULTS</div><h2>Active yield agents on Arc</h2></div>
+                <button class="text-button" id="yield-public-refresh" type="button">Refresh <span>↻</span></button>
+              </div>
+              <div class="yield-public-list" id="yield-public-list"></div>
+            </section>
+
+            <!-- User's Personal Yield Positions -->
             <section class="panel yield-panel" id="yield-positions" aria-labelledby="yield-positions-title">
               <div class="panel-heading">
-                <div><div class="section-kicker">MORPHO GALAXY STRATEGY</div><h2 id="yield-positions-title">Yield positions</h2></div>
+                <div><div class="section-kicker">PORTFOLIO</div><h2 id="yield-positions-title">Your personal yield positions</h2></div>
                 <button class="text-button" id="yield-refresh" type="button">Refresh values <span>↻</span></button>
               </div>
               <div class="panel-body-padded">
@@ -203,13 +236,13 @@
                     <div class="empty-core"></div>
                     <div class="empty-orbit"></div>
                   </div>
-                  <h3>No active yield positions</h3>
-                  <p>Deploy a Yield agent to put idle USDC to work in the Morpho Galaxy strategy on Arc with daily withdrawal guardrails.</p>
-                  <button class="button-primary" id="yield-empty-create" type="button"><span>＋</span> Deploy Yield agent</button>
+                  <h3>No personal yield positions yet</h3>
+                  <p>Deploy your dedicated Yield agent to start earning with Morpho Galaxy on Arc with your own customized daily spend limit.</p>
+                  <button class="button-primary" id="yield-empty-create" type="button"><span>＋</span> Deploy personal Yield agent</button>
                 </div>
                 <div class="yield-positions-list" id="yield-positions-list"></div>
               </div>
-              <div class="yield-panel-foot" id="yield-updated">Values read from your agent vaults on Arc.</div>
+              <div class="yield-panel-foot" id="yield-updated">Values read directly from agent vaults on Arc Mainnet.</div>
             </section>
           </div>
 
