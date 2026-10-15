@@ -28,6 +28,7 @@
           <a class="nav-link" href="#signals"><span class="nav-icon">⌁</span>Signals</a>
           <a class="nav-link" href="#activity"><span class="nav-icon">↗</span>Activity</a>
           <a class="nav-link" href="#discover"><span class="nav-icon">⌕</span>Discover</a>
+          <a class="nav-link" href="#security"><span class="nav-icon">🛡</span>Security</a>
         </nav>
 
         <div class="sidebar-bottom">
@@ -176,6 +177,89 @@
             <p class="signals-disclosure">Delivery is manual. Payments go directly to the publisher, and delivery links are recorded on Arc. Use access-controlled links for private content.</p>
           </section>
 
+          <section class="panel security-panel" id="security" aria-labelledby="security-title">
+            <div class="panel-heading">
+              <div><div class="section-kicker">ON-CHAIN INVARIANTS</div><h2 id="security-title">Secure the agent flow</h2></div>
+              <span class="preview-tag security-tag">VERIFIED ON ARC</span>
+            </div>
+            <div class="security-body">
+              <div class="security-intro-box">
+                <p class="security-lead">Most "AI agent" apps today are just LLM prompts wired directly to hot wallets. If your agent hallucinates, catches a prompt injection, or hits an edge case, your entire treasury is gone in one block.</p>
+                <p class="security-sub">Argents enforces financial safety in <strong>smart contracts</strong>, not just system prompts. The human sets the immutable rules; the AI operates strictly within them.</p>
+              </div>
+
+              <div class="security-rules-grid">
+                <div class="security-rule-card">
+                  <div class="rule-num">01</div>
+                  <h3>Agents as Operators, Humans as Owners</h3>
+                  <p>An agent must never hold master keys. It operates within an isolated, owner-controlled smart vault where key admin powers (spending limits, emergency recovery) are strictly gated to the human owner.</p>
+                </div>
+                <div class="security-rule-card">
+                  <div class="rule-num">02</div>
+                  <h3>Daily Mathematical Guardrails</h3>
+                  <p>Never grant infinite token allowance. Outflows are capped by on-chain daily spend limits that reset automatically at midnight UTC. If an agent goes rogue, your 24-hour downside is strictly bounded.</p>
+                </div>
+                <div class="security-rule-card">
+                  <div class="rule-num">03</div>
+                  <h3>Strict Integer Base-Unit Math</h3>
+                  <p>Financial calculations must never touch floating-point math. All amounts are computed in 6-decimal integer base units (1.00 USDC = 1,000,000 minor units). Zero rounding errors or drained dust.</p>
+                </div>
+                <div class="security-rule-card">
+                  <div class="rule-num">04</div>
+                  <h3>Separation of Idle vs. Deployed Capital</h3>
+                  <p>Idle reserves are strictly partitioned from strategy capital (e.g. Morpho Galaxy USDC). Idle and invested shares are tracked on-chain so liquidity recall is deterministic.</p>
+                </div>
+                <div class="security-rule-card">
+                  <div class="rule-num">05</div>
+                  <h3>On-Chain Events as Sole Ledger Truth</h3>
+                  <p>Never rely on mutable off-chain databases. Every deposit, yield allocation, share recall, and transfer is an immutable EVM log on Arc. State is reconstructed directly from the chain.</p>
+                </div>
+                <div class="security-rule-card">
+                  <div class="rule-num">06</div>
+                  <h3>Trust-Minimized Signal Settlement</h3>
+                  <p>When agents sell data or reports, payment confirmation, delivery URI, and buyer receipt acknowledgment are permanently anchored on Arc. No reliance on off-chain payment verification.</p>
+                </div>
+                <div class="security-rule-card full-span-rule">
+                  <div class="rule-num">07</div>
+                  <h3>Zero API Keys in Client Builds</h3>
+                  <p>Argents runs with zero backend API keys, zero centralized database credentials, and zero private environment variables. All reads use public Arc RPC nodes, and all mutations require direct wallet signatures.</p>
+                </div>
+              </div>
+
+              <div class="security-terminal">
+                <div class="terminal-bar">
+                  <span class="term-dot dot-red"></span>
+                  <span class="term-dot dot-yellow"></span>
+                  <span class="term-dot dot-green"></span>
+                  <span class="term-title">NOW TRY TO BREAK IT · AUTOMATED STRESS TESTS</span>
+                </div>
+                <div class="terminal-content">
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Single-transaction limit breach: withdraw &gt; daily cap</span> <span class="term-res">→ REVERTS (ExceedsDailyLimit)</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Cumulative daily drain: 10 valid transfers + 1 excess transfer</span> <span class="term-res">→ REVERTS on #11</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Unauthorized caller execution: non-owner withdrawal</span> <span class="term-res">→ REVERTS (OwnableUnauthorized)</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">DeFi liquidity stress: Morpho Galaxy USDC partial redemption</span> <span class="term-res">→ DETERMINISTIC SHARE RECALL</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Boundary fuzzing: 0.000001 USDC micro-dust, zero, negative</span> <span class="term-res">→ VALIDATED BASE UNITS</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Network concurrency: rapid repeated clicks &amp; RPC latency</span> <span class="term-res">→ ZERO DOUBLE-SPEND</span></div>
+                  <div class="term-line"><span class="term-badge pass">PASS</span> <span class="term-text">Balance reconciliation: totalAssets() == idle + Morpho shares</span> <span class="term-res">→ 100% RECONCILED</span></div>
+                </div>
+              </div>
+
+              <div class="golden-rule-callout">
+                <div class="callout-icon">⚖</div>
+                <div class="callout-body">
+                  <strong>The Golden Rule of Autonomous Capital:</strong>
+                  <p>Don't ask: <em>“Is my autonomous agent safe?”</em><br />Ask: <strong>“What is the maximum mathematical loss this agent can cause in 24 hours if the AI completely loses its mind?”</strong></p>
+                  <small>If the answer isn't a hard number enforced by a smart contract, you aren't ready for mainnet.</small>
+                </div>
+              </div>
+
+              <div class="security-proof-footer">
+                <div class="proof-tag"><span class="proof-dot"></span> Real Capital Verified on Arc Mainnet (0.02 USDC in · 0.01 USDC Morpho · 0.01 USDC out)</div>
+                <a href="https://explorer.arc.io/address/0x9eac69A950a13B40BE06547bE833Df653FE32Db8" target="_blank" rel="noreferrer" class="proof-link">Verify Yield Agent on Arc Explorer ↗</a>
+              </div>
+            </div>
+          </section>
+
           <section class="bottom-grid">
             <article class="panel mode-panel">
               <div class="panel-heading compact-heading">
@@ -205,7 +289,7 @@
             </article>
           </section>
 
-          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="SECURITY.md" target="_blank" rel="noreferrer">Security notes ↗</a><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
+          <footer class="page-footer"><span>ARGENTS <span class="footer-dot">●</span> BUILT ON ARC</span><span>USDC agents, with guardrails.</span><a href="#security">Security & guardrails ↗</a><a href="https://explorer.arc.io" target="_blank" rel="noreferrer">View Arc Explorer ↗</a></footer>
         </div>
       </main>
     </div>

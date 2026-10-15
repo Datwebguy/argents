@@ -349,6 +349,53 @@ h1 span { background: linear-gradient(90deg, var(--lime), #a8e052, #e8f5a0, var(
 .agent-manage-link { display: inline-flex; align-items: center; border-color: #90b356; background: #29371f; color: var(--lime); font-weight: 700; }
 .agent-manage-link:hover { background: #344727; }
 .mode-discovery-list .discovery-row { grid-template-columns: 28px minmax(0, 1fr) minmax(110px, auto) 22px; }
+
+.security-panel { margin-bottom: 17px; }
+.security-tag { color: var(--lime); border: 1px solid #3c542a; background: #1c2718; font-size: 9px; font-weight: 700; padding: 4px 8px; border-radius: 4px; }
+.security-body { padding: 22px 24px; }
+.security-intro-box { padding-bottom: 20px; border-bottom: 1px solid var(--border-soft); margin-bottom: 22px; }
+.security-lead { font: 500 15px/1.6 var(--display); color: #e1e8de; margin: 0 0 8px; }
+.security-sub { font-size: 13px; line-height: 1.6; color: #8e9c93; margin: 0; }
+.security-rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+.security-rule-card { background: #131b17; border: 1px solid #233128; border-radius: 6px; padding: 16px 18px; transition: border-color .18s ease; }
+.security-rule-card:hover { border-color: #3b5042; }
+.full-span-rule { grid-column: span 2; }
+.rule-num { display: inline-block; font: 700 11px var(--mono); color: var(--lime); background: #202d1c; padding: 2px 7px; border-radius: 3px; margin-bottom: 10px; }
+.security-rule-card h3 { margin: 0 0 6px; font: 600 13px var(--display); color: #f0f5ee; }
+.security-rule-card p { margin: 0; font-size: 11px; line-height: 1.6; color: #8c9b91; }
+
+.security-terminal { background: #0c120f; border: 1px solid #1f2b23; border-radius: 7px; overflow: hidden; margin-bottom: 20px; font: 11px/1.7 var(--mono); }
+.terminal-bar { display: flex; align-items: center; gap: 7px; padding: 10px 14px; background: #141c18; border-bottom: 1px solid #1f2a23; }
+.term-dot { width: 9px; height: 9px; border-radius: 50%; }
+.dot-red { background: #df5846; }
+.dot-yellow { background: #dcb342; }
+.dot-green { background: #50c377; }
+.term-title { margin-left: 6px; color: #7f9086; font-size: 10px; letter-spacing: .8px; }
+.terminal-content { padding: 14px 16px; display: grid; gap: 6px; }
+.term-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.term-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.term-badge.pass { background: #1f3424; color: #8be497; border: 1px solid #2f5237; }
+.term-text { color: #cfd8d0; }
+.term-res { margin-left: auto; color: var(--lime); }
+
+.golden-rule-callout { display: flex; gap: 14px; padding: 16px 18px; background: #17241c; border-left: 3px solid var(--lime); border-radius: 0 6px 6px 0; margin-bottom: 18px; }
+.callout-icon { font-size: 20px; color: var(--lime); line-height: 1; }
+.callout-body strong { display: block; font-size: 12px; color: #f2f7ef; margin-bottom: 4px; }
+.callout-body p { margin: 0 0 6px; font-size: 12px; line-height: 1.5; color: #d4ded6; }
+.callout-body small { display: block; font-size: 11px; color: #8ea094; }
+
+.security-proof-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border-soft); font-size: 11px; }
+.proof-tag { display: flex; align-items: center; gap: 8px; color: #9ab0a0; }
+.proof-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px #73d59c60; }
+.proof-link { color: var(--lime); text-decoration: none; font-weight: 600; font-size: 11px; }
+.proof-link:hover { text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .security-rules-grid { grid-template-columns: 1fr; }
+  .full-span-rule { grid-column: span 1; }
+  .term-res { margin-left: 0; width: 100%; }
+}
+
 @media (max-width: 900px) { .signals-layout { grid-template-columns: 1fr; } .signals-publish { border-top: 1px solid var(--border-soft); border-left: 0; } }
 @media (max-width: 720px) { .mode-discovery-list .discovery-row { grid-template-columns: 20px minmax(0, 1fr) minmax(86px, auto) 17px; } }
 

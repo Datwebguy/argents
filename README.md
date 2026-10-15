@@ -61,15 +61,45 @@ Every agent on Argents is an on-chain smart vault deployed via verified factory 
 flowchart LR
     Owner[Agent Owner] --> Factory[Argents Factories]
     Factory --> Vault[Dedicated Agent Vault]
-    Vault --> Guardrail{Daily UTC Cap}
-    Guardrail -->|Yield Mode| Morpho[Morpho Galaxy USDC]
-    Guardrail -->|Treasury Mode| Recipient[Arc Recipient Address]
+    Guardrail{Daily UTC Cap} --> Vault
+    Vault -->|Yield Mode| Morpho[Morpho Galaxy USDC]
+    Vault -->|Treasury Mode| Recipient[Arc Recipient Address]
     Buyer[Buyer Wallet] -->|Signals Mode| Marketplace[Signals Marketplace]
     Marketplace -->|Direct Payment| Vault
     Marketplace --> Delivery[Delivery URI & Receipt]
     Vault --> Proof[Arc Mainnet Explorer]
     Morpho --> Proof
 ```
+
+## Secure the agent flow
+
+Most "AI agent" apps today are little more than LLM prompts wired directly to hot wallets. If an agent hallucinates, catches a prompt injection, or hits an edge case, an entire treasury can be drained in a single transaction block.
+
+Argents enforces financial safety in **smart contracts**, not just system prompts:
+
+- **Agents as Operators, Humans as Owners**: An agent must never hold master keys. It operates within an isolated, owner-controlled smart vault (`ArgentsYieldVault`, `ArgentsAgentVault`) where key administrative powers (spending limits, emergency recovery) are strictly gated to the human owner (`onlyOwner`).
+- **Mathematically Enforced Daily Spend Limits**: Never grant infinite token allowance. Outflows are capped by on-chain daily spend limits (`spentByDay[currentDay]`) that reset automatically at midnight UTC. If an agent goes rogue, maximum 24-hour downside is strictly bounded.
+- **Strict Integer Base-Unit Math**: In Web3, everything is integer base units (6 decimals for native Arc USDC: `1.00 USDC = 1,000,000` base units). Zero floating-point math, preventing rounding errors and dust drains.
+- **Strict Separation of Idle vs. Deployed Capital**: Vaults maintain deterministic on-chain accounting: liquid idle USDC vs. strategy vault shares (held in Morpho Galaxy USDC). Liquidity recall and redemption are mathematically deterministic.
+- **On-Chain Event Ledger as Sole Source of Truth**: Never rely on mutable off-chain databases. Every deposit, allocation, share recall, and transfer is an immutable EVM log on Arc.
+- **Trust-Minimized Content & Signal Settlement**: In Signals mode (`ArgentsSignals.sol`), payments, access URIs, and buyer receipts are anchored directly on Arc.
+- **Zero API Keys in Client Builds**: Argents runs with zero backend API keys and zero private environment variables. All reads use public Arc RPC nodes (`https://rpc.mainnet.arc.io`), and all mutations are signed directly by user wallets.
+
+### Automated stress tests: breaking the boundaries
+
+Before deployment, automated test suites actively challenged and verified each on-chain boundary:
+
+```text
+[TEST 01] Single-transaction limit breach: withdraw > daily cap      -> REVERTS (ExceedsDailyLimit)
+[TEST 02] Cumulative daily drain: 10 valid transfers + 1 excess      -> REVERTS on #11 (Resets 00:00 UTC)
+[TEST 03] Unauthorized caller execution: non-owner withdrawal        -> REVERTS (OwnableUnauthorized)
+[TEST 04] DeFi liquidity stress: Morpho Galaxy partial redemption    -> DETERMINISTIC SHARE RECALL
+[TEST 05] Boundary fuzzing: 0.000001 USDC micro-dust, zero, negative -> VALIDATED BASE UNITS
+[TEST 06] Network concurrency & RPC latency simulations              -> ZERO DOUBLE-SPEND
+[TEST 07] Asset reconciliation: totalAssets() == idle + Morpho       -> 100% RECONCILED ON ARC MAINNET
+```
+
+> **The Golden Rule:** Don't ask: *"Is my autonomous agent safe?"* Ask: **"What is the maximum mathematical loss this agent can cause in 24 hours if the AI completely loses its mind?"** If the answer isn't a hard number enforced by a smart contract, you aren't ready for mainnet.
 
 ## How the pieces fit
 

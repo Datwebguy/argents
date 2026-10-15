@@ -970,7 +970,7 @@
     const isSignals = target === "signals";
     document.body.classList.toggle("signals-view", isSignals);
     $("#signals").hidden = !isSignals;
-    $(".breadcrumbs strong").textContent = isSignals ? "Signals" : "Overview";
+    $(".breadcrumbs strong").textContent = isSignals ? "Signals" : (target === "security" ? "Security" : "Overview");
     document.querySelectorAll(".primary-nav .nav-link").forEach((link) => {
       const active = link.getAttribute("href") === `#${target}`;
       link.classList.toggle("active", active);
