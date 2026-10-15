@@ -172,7 +172,7 @@
         </div>
         <p class="yield-position-note" data-position="basis">Reading deposits and withdrawals from Arc…</p>
       </div>`).join("");
-    if (window.ethereum && activeAccount && window.ethereum.request) refreshAgentBalances(agents).catch(() => {
+    if (getWallet() && activeAccount && getWallet().request) refreshAgentBalances(agents).catch(() => {
       $("#yield-updated").textContent = "Could not read Arc positions. Refresh values to try again.";
     });
   }
@@ -187,10 +187,60 @@
     return { abi, bytecode: `0x${bytecode}` };
   }
 
+  let eip6963Providers = [];
+  if (typeof window !== "undefined") {
+    window.addEventListener("eip6963:announceProvider", (event) => {
+      if (event?.detail?.provider && !eip6963Providers.some((p) => p.info?.uuid === event.detail.info?.uuid)) {
+        eip6963Providers.push(event.detail);
+        setupWalletListeners(event.detail.provider);
+      }
+    });
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+  }
+
+  function getWallet() {
+    if (eip6963Providers.length > 0 && eip6963Providers[0].provider) {
+      return eip6963Providers[0].provider;
+    }
+    if (typeof window !== "undefined") {
+      if (window.ethereum) {
+        if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length > 0) {
+          return window.ethereum.providers.find((p) => p.isMetaMask) || window.ethereum.providers[0];
+        }
+        return window.ethereum;
+      }
+      if (window.rabby) return window.rabby;
+      if (window.phantom?.ethereum) return window.phantom.ethereum;
+      if (window.coinbaseWalletExtension) return window.coinbaseWalletExtension;
+      if (window.okxwallet) return window.okxwallet;
+    }
+    return null;
+  }
+
+  function setupWalletListeners(wallet) {
+    if (!wallet || wallet._argentsListenersAttached) return;
+    wallet._argentsListenersAttached = true;
+    wallet.on?.("accountsChanged", (accounts) => {
+      if (localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
+      activeAccount = accounts[0] || null;
+      if (activeAccount) {
+        connectButton.classList.add("connected");
+        connectLabel.textContent = shorten(activeAccount);
+        syncWallet(activeAccount).catch(() => showToast("Unable to refresh wallet data.", "error"));
+      } else {
+        disconnectFromApp(false);
+      }
+    });
+    wallet.on?.("chainChanged", () => {
+      if (activeAccount) syncWallet(activeAccount).catch(() => showToast("Unable to refresh network data.", "error"));
+    });
+  }
+
   function provider() {
-    if (!window.ethereum) throw new Error("No browser wallet detected. Install an EVM wallet to continue.");
+    const wallet = getWallet();
+    if (!wallet) throw new Error("No browser wallet detected. Install an EVM wallet to continue.");
     if (!window.ethers) throw new Error("Could not load the wallet connection library. Refresh and try again.");
-    return new window.ethers.BrowserProvider(window.ethereum, "any");
+    return new window.ethers.BrowserProvider(wallet, "any");
   }
 
   async function getSigner() {
@@ -201,16 +251,18 @@
   }
 
   async function ensureArc() {
+    const wallet = getWallet();
+    if (!wallet) throw new Error("No browser wallet detected.");
     try {
-      await window.ethereum.request({
+      await wallet.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: ARC.id }],
       });
     } catch (error) {
       if (error.code !== 4902 && error.code !== -32603) throw error;
-      await window.ethereum.request({ method: "wallet_addEthereumChain", params: [ARC] });
+      await wallet.request({ method: "wallet_addEthereumChain", params: [ARC] });
     }
-    const actual = await window.ethereum.request({ method: "eth_chainId" });
+    const actual = await wallet.request({ method: "eth_chainId" });
     if (actual.toLowerCase() !== ARC.id) throw new Error("Switch your wallet to Arc Mainnet to continue.");
   }
 
@@ -632,7 +684,8 @@
   }
 
   async function syncWallet(account = activeAccount) {
-    if (!window.ethereum || !account) return;
+    const wallet = getWallet();
+    if (!wallet || !account) return;
     if (walletMenuAddress.textContent && walletMenuAddress.textContent.toLowerCase() !== account.toLowerCase()) closeWalletMenu();
     activeAccount = account;
     connectButton.classList.add("connected");
@@ -641,7 +694,7 @@
     walletMenuAddress.textContent = account;
     walletControls.hidden = false;
     walletAddress.textContent = account;
-    const chainId = await window.ethereum.request({ method: "eth_chainId" });
+    const chainId = await wallet.request({ method: "eth_chainId" });
     if (activeAccount?.toLowerCase() !== account.toLowerCase() || localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
     if (chainId.toLowerCase() !== ARC.id) {
       chainStatus.textContent = "Switch to Arc Mainnet";
@@ -653,8 +706,8 @@
     }
 
     const [balanceHex, blockHex] = await Promise.all([
-      window.ethereum.request({ method: "eth_getBalance", params: [account, "latest"] }),
-      window.ethereum.request({ method: "eth_blockNumber" }),
+      wallet.request({ method: "eth_getBalance", params: [account, "latest"] }),
+      wallet.request({ method: "eth_blockNumber" }),
     ]);
     const blockNumber = Number(BigInt(blockHex)).toLocaleString("en-US");
     try {
@@ -679,15 +732,22 @@
   }
 
   async function connectWallet() {
-    if (!window.ethereum) {
-      showToast("Install an EVM wallet, then add Arc Mainnet to connect.", "error");
+    let wallet = getWallet();
+    if (!wallet) {
+      // Give late-injecting extensions up to 400ms before giving up
+      await new Promise((r) => setTimeout(r, 400));
+      wallet = getWallet();
+    }
+    if (!wallet) {
+      showToast("No EVM wallet detected. Please ensure MetaMask or Rabby is installed and enabled on this page.", "error");
       return false;
     }
+    setupWalletListeners(wallet);
     connectButton.disabled = true;
     connectLabel.textContent = "Connecting…";
     try {
       await ensureArc();
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await wallet.request({ method: "eth_requestAccounts" });
       if (!accounts || !accounts[0]) throw new Error("No wallet account was returned.");
       activeAccount = accounts[0];
       localStorage.removeItem(MANUAL_DISCONNECT_KEY);
@@ -1051,22 +1111,10 @@
     if (agent) openTransactionDialog(agent, button.dataset.action);
   });
 
-  if (window.ethereum) {
-    window.ethereum.on?.("accountsChanged", (accounts) => {
-      if (localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
-      activeAccount = accounts[0] || null;
-      if (activeAccount) {
-        connectButton.classList.add("connected");
-        connectLabel.textContent = shorten(activeAccount);
-        syncWallet(activeAccount).catch(() => showToast("Unable to refresh wallet data.", "error"));
-      } else {
-        disconnectFromApp(false);
-      }
-    });
-    window.ethereum.on?.("chainChanged", () => {
-      if (activeAccount) syncWallet(activeAccount).catch(() => showToast("Unable to refresh network data.", "error"));
-    });
-    window.ethereum.request({ method: "eth_accounts" }).then((accounts) => {
+  const initialWallet = getWallet();
+  if (initialWallet) {
+    setupWalletListeners(initialWallet);
+    initialWallet.request({ method: "eth_accounts" }).then((accounts) => {
       if (localStorage.getItem(MANUAL_DISCONNECT_KEY) === "1") return;
       if (accounts?.[0]) {
         activeAccount = accounts[0];
