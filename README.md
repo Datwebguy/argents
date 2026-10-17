@@ -221,6 +221,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `contracts/ArgentsAgent.sol` | Base capped USDC vault contract. |
 | `contracts/ArgentsAutopilotYield.sol` | Rules-based Yield vault and factory deployed on Arc Mainnet. |
 | `scripts/agent-runner.cjs` | Autonomous operator runtime for inspecting agents and fulfilling signals. |
+| `scripts/compile-contracts.cjs` | Rebuilds `contracts/artifacts` with each contract's deployed solc version and optimizer settings (`npm run compile:contracts`; verify with `npm run check:contracts`). |
 | `deployments.arc-mainnet.json` | Complete machine-readable deployment transaction logs. |
 | `LICENSE` | Standard open-source MIT license. |
 

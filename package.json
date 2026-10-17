@@ -7,7 +7,9 @@
     "dev": "python -m http.server 4173",
     "start": "python -m http.server 4173",
     "check": "node --check app.js && node --check scripts/agent-runner.cjs",
-    "agent": "node scripts/agent-runner.cjs"
+    "agent": "node scripts/agent-runner.cjs",
+    "compile:contracts": "node scripts/compile-contracts.cjs",
+    "check:contracts": "node scripts/compile-contracts.cjs --check"
   },
   "keywords": [
     "arc",
