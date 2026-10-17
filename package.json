@@ -9,7 +9,8 @@
     "check": "node --check app.js && node --check scripts/agent-runner.cjs && node --check scripts/compile-contracts.cjs",
     "agent": "node scripts/agent-runner.cjs",
     "compile:contracts": "node scripts/compile-contracts.cjs",
-    "check:contracts": "node scripts/compile-contracts.cjs --check"
+    "check:contracts": "node scripts/compile-contracts.cjs --check",
+    "test": "hardhat test --config hardhat.config.cjs"
   },
   "keywords": [
     "arc",
@@ -25,5 +26,12 @@
   "license": "MIT",
   "dependencies": {
     "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.2",
+    "@nomicfoundation/hardhat-ethers": "^3.1.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.1.2",
+    "chai": "^4.5.0",
+    "hardhat": "^2.29.1"
   }
 }

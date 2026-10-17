@@ -6,3 +6,5 @@ wallet.txt
 *.key
 node_modules/
 .DS_Store
+cache/
+hh-artifacts/

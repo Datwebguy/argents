@@ -228,6 +228,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `contracts/ArgentsAutopilotYield.sol` | Rules-based Yield vault and factory deployed on Arc Mainnet. |
 | `scripts/agent-runner.cjs` | Operator CLI for read-only vault inspection and owner-signed Signals delivery. |
 | `scripts/compile-contracts.cjs` | Rebuilds `contracts/artifacts` with each contract's deployed solc version and optimizer settings (`npm run compile:contracts`; verify with `npm run check:contracts`). |
+| `test/vaults.test.cjs` | Hardhat suite (`npm test`) covering daily caps, owner-only actions, Autopilot allocation and rebalance, Yield recall, and the Signals and Mode flows, using mock USDC and Morpho in `contracts/mocks/`. |
 | `deployments.arc-mainnet.json` | Complete machine-readable deployment transaction logs. |
 | `LICENSE` | Standard open-source MIT license. |
 
