@@ -96,6 +96,8 @@ a { color: inherit; text-decoration: none; }
 h1 { margin: 12px 0 8px; font: 700 clamp(29px, 3vw, 39px)/1.15 var(--display); letter-spacing: -1.9px; }
 h1 span { background: linear-gradient(90deg, var(--lime), #a8e052, #e8f5a0, var(--lime)); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradientShift 6s ease infinite; }
 .welcome-copy { margin: 0; color: #94a099; font-size: 13px; line-height: 1.65; }
+.agent-action { min-height: 27px; padding: 0 8px; border: 1px solid #425046; border-radius: 4px; background: transparent; color: #c8d3ca; font-size: 9px; cursor: pointer; transition: border-color .15s ease, color .15s ease, background .15s ease; }
+.agent-action:not(.button-primary):hover { border-color: var(--lime); color: var(--lime); background: #d0f16d08; }
 .button-primary { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 17px; border: 0; border-radius: 5px; background: var(--lime); color: #172015; font-size: 11px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 18px #d0f16d0c; transition: transform .18s ease, background .18s ease; }
 .button-primary:hover { background: #dcf995; transform: translateY(-1px); }
 .button-primary > span { font-size: 17px; font-weight: 400; }

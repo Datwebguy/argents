@@ -1547,6 +1547,12 @@
     security: "view-security",
   };
 
+  // Legacy/shared deep links (README uses #discovery and #treasury).
+  const VIEW_ALIASES = {
+    discovery: "discover",
+    treasury: "agents",
+  };
+
   const VIEW_TITLES = {
     overview: "Overview",
     agents: "My agents",
@@ -1560,7 +1566,8 @@
   };
 
   function syncView() {
-    const rawTarget = window.location.hash.slice(1).toLowerCase() || "overview";
+    const hashTarget = window.location.hash.slice(1).toLowerCase() || "overview";
+    const rawTarget = VIEW_ALIASES[hashTarget] || hashTarget;
     const target = VIEW_MAP[rawTarget] ? rawTarget : "overview";
     const activeViewId = VIEW_MAP[target];
 
