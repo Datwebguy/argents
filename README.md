@@ -37,7 +37,7 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 | [**Yield Autopilot**](https://argents.vercel.app/#yield) | Select a Morpho Galaxy USDC allocation once. Every later deposit automatically restores that allocation; anyone may call maintenance, but only the owner can withdraw under the daily cap. |
 | [**Signals Marketplace**](https://argents.vercel.app/#signals) | Browse paid intelligence reports, purchase access via direct USDC transfers, deliver access URIs, and confirm buyer receipt on-chain. |
 | [**Treasury Mode**](https://argents.vercel.app/#treasury) | Receive native USDC deposits and send funds to designated Arc addresses, strictly bounded by a daily UTC withdrawal limit. |
-| [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Index the Yield and Yield Autopilot factories on Arc, then rank public agents by live idle USDC plus Morpho position value. |
+| [**Discovery & Leaderboards**](https://argents.vercel.app/#discovery) | Index the Yield, Yield Autopilot, and Mode factories on Arc, rank Yield agents by live idle USDC plus Morpho position value, and list public Signals and Treasury agents. |
 
 ## How to use Argents
 
@@ -69,7 +69,7 @@ Autonomous AI agents and financial automations often run into two extremes: eith
 - **Overview** shows the connected wallet balance, agent count, yield result, and Arc network state.
 - **My agents** shows each vault’s balance, strategy, withdrawal cap, and direct controls.
 - **Activity** reads vault events from Arc Mainnet.
-- **Discover** indexes public Yield and Yield Autopilot factory events, then ranks agents by live value.
+- **Discover** indexes public Yield, Yield Autopilot, Signals, and Treasury agents from factory events, ranking Yield agents by live value.
 
 ### An agent action, from intent to proof
 
@@ -126,24 +126,30 @@ Argents enforces financial safety in **smart contracts**, not just system prompt
 - **Rules-Based Capital Allocation**: `ArgentsAutopilotYieldVault` stores the selected Morpho allocation onchain and applies it on each deposit. Any account can restore the rule without gaining authority to withdraw or redirect capital.
 - **Agents as Operators, Humans as Owners**: An agent does not hold a master key. It operates within an isolated, owner-controlled smart vault where withdrawal controls and rule updates are gated to the owner.
 - **Mathematically Enforced Daily Spend Limits**: Never grant infinite token allowance. Outflows are capped by on-chain daily spend limits (`spentByDay[currentDay]`) that reset automatically at midnight UTC. If an agent goes rogue, maximum 24-hour downside is strictly bounded.
-- **Strict Integer Base-Unit Math**: In Web3, everything is integer base units (6 decimals for native Arc USDC: `1.00 USDC = 1,000,000` base units). Zero floating-point math, preventing rounding errors and dust drains.
+- **Strict Integer Base-Unit Math**: In Web3, everything is integer base units. Vaults use the Arc USDC token interface at `0x3600…0000`, which has 6 decimals (`1.00 USDC = 1,000,000` base units); Arc's native gas balance reports the same USDC with 18 decimals. Zero floating-point math, preventing rounding errors and dust drains.
 - **Strict Separation of Idle vs. Deployed Capital**: Vaults maintain deterministic on-chain accounting: liquid idle USDC vs. strategy vault shares (held in Morpho Galaxy USDC). Liquidity recall and redemption are mathematically deterministic.
 - **On-Chain Event Ledger as Sole Source of Truth**: Never rely on mutable off-chain databases. Every deposit, allocation, share recall, and transfer is an immutable EVM log on Arc.
 - **Trust-Minimized Content & Signal Settlement**: In Signals mode (`ArgentsSignals.sol`), payments, access URIs, and buyer receipts are anchored directly on Arc.
 - **Zero API Keys in Client Builds**: Argents runs with zero backend API keys and zero private environment variables. All reads use public Arc RPC nodes (`https://rpc.mainnet.arc.io`), and all mutations are signed directly by user wallets.
 
-### Automated stress tests: breaking the boundaries
+### On-chain guarantees
 
-Before deployment, automated test suites actively challenged and verified each on-chain boundary:
+Each boundary is enforced in the contracts and reverts with a custom error:
 
 ```text
-[TEST 01] Single-transaction limit breach: withdraw > daily cap      -> REVERTS (ExceedsDailyLimit)
-[TEST 02] Cumulative daily drain: 10 valid transfers + 1 excess      -> REVERTS on #11 (Resets 00:00 UTC)
-[TEST 03] Unauthorized caller execution: non-owner withdrawal        -> REVERTS (OwnableUnauthorized)
-[TEST 04] DeFi liquidity stress: Morpho Galaxy partial redemption    -> DETERMINISTIC SHARE RECALL
-[TEST 05] Boundary fuzzing: 0.000001 USDC micro-dust, zero, negative -> VALIDATED BASE UNITS
-[TEST 06] Network concurrency & RPC latency simulations              -> ZERO DOUBLE-SPEND
-[TEST 07] Asset reconciliation: totalAssets() == idle + Morpho       -> 100% RECONCILED ON ARC MAINNET
+All vaults
+  Withdrawal above the remaining daily cap      -> reverts LimitExceeded()  (spentByDay resets 00:00 UTC)
+  Cumulative withdrawals across one UTC day     -> reverts LimitExceeded() once the cap is reached
+  Owner-only action called by anyone else       -> reverts NotOwner()
+  Zero amount or zero recipient                 -> reverts ZeroAmount() / ZeroAddress()
+
+Yield and Yield Autopilot vaults
+  Strategy whose asset is not Arc USDC          -> reverts InvalidAsset()
+  Re-entrant call into a vault action           -> reverts Reentered()
+
+Yield Autopilot vaults
+  Allocation above 100% (10,000 bps)            -> reverts InvalidAllocation()
+  Public rebalance()                            -> moves USDC only between the vault and Morpho
 ```
 
 > **The Golden Rule:** Don't ask: *"Is my autonomous agent safe?"* Ask: **"What is the maximum mathematical loss this agent can cause in 24 hours if the AI completely loses its mind?"** If the answer isn't a hard number enforced by a smart contract, you aren't ready for mainnet.
@@ -154,11 +160,11 @@ Before deployment, automated test suites actively challenged and verified each o
 | :--- | :--- | :--- |
 | Network | **Arc Mainnet (Chain ID 5042)** | Native USDC transfers, transaction gas fees, and immutable execution proof. |
 | Yield Strategy | **Morpho Galaxy USDC** | Direct ERC-4626 vault shares held directly by the agent vault (`0x8E357432CC12ff425c36432F312968aEb16112AF`). |
-| Core Factories | **Solidity 0.8.24 (`ArgentsAutopilotYield`, `ArgentsYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, applies Yield allocation rules, and enforces daily withdrawal limits. |
+| Core Factories | **Solidity ^0.8.24 (`ArgentsAutopilotYield`, `ArgentsYield`, `ArgentsModes`)** | Deploys isolated vaults, tracks agent ownership, applies Yield allocation rules, and enforces daily withdrawal limits. |
 | Paid Services & Output | **`ArgentsSignals` Marketplace** | Manages offer listings, direct buyer-to-vault payments, and on-chain delivery hashes (`0xa7C755ab5aa2a17062Dc6D45ea8594Ff43ac9A68`). |
 | Safety Guardrails | **Time-bucketed Daily Caps** | Enforces maximum daily capital outflow resets every UTC midnight. |
 | Web3 & UI | **HTML5, Modern CSS, Ethers v6 UMD** | High-performance, zero-build-step client reading live RPC state and caching event logs. |
-| Hosting & Edge | **Vercel / OpenAI Sites** | Production static hosting with strict security headers ([argents.vercel.app](https://argents.vercel.app)). |
+| Hosting & Edge | **Vercel** | Production static hosting with strict security headers ([argents.vercel.app](https://argents.vercel.app)). |
 
 ## Live deployments
 
@@ -220,7 +226,7 @@ Arc uses native USDC for gas fees, so ensure your wallet holds a small amount of
 | `contracts/ArgentsSignals.sol` | Signals marketplace for offer listings, payments, and receipts. |
 | `contracts/ArgentsAgent.sol` | Base capped USDC vault contract. |
 | `contracts/ArgentsAutopilotYield.sol` | Rules-based Yield vault and factory deployed on Arc Mainnet. |
-| `scripts/agent-runner.cjs` | Autonomous operator runtime for inspecting agents and fulfilling signals. |
+| `scripts/agent-runner.cjs` | Operator CLI for read-only vault inspection and owner-signed Signals delivery. |
 | `scripts/compile-contracts.cjs` | Rebuilds `contracts/artifacts` with each contract's deployed solc version and optimizer settings (`npm run compile:contracts`; verify with `npm run check:contracts`). |
 | `deployments.arc-mainnet.json` | Complete machine-readable deployment transaction logs. |
 | `LICENSE` | Standard open-source MIT license. |
