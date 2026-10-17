@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "python -m http.server 4173",
     "start": "python -m http.server 4173",
-    "check": "node --check app.js && node --check scripts/agent-runner.cjs",
+    "check": "node --check app.js && node --check scripts/agent-runner.cjs && node --check scripts/compile-contracts.cjs",
     "agent": "node scripts/agent-runner.cjs",
     "compile:contracts": "node scripts/compile-contracts.cjs",
     "check:contracts": "node scripts/compile-contracts.cjs --check"
@@ -25,8 +25,5 @@
   "license": "MIT",
   "dependencies": {
     "ethers": "^6.15.0"
-  },
-  "devDependencies": {
-    "solc": "^0.8.24"
   }
 }

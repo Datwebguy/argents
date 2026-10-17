@@ -5,6 +5,4 @@ wallet.txt
 *.pem
 *.key
 node_modules/
-contracts/artifacts/*_IAutopilot*.abi
-contracts/artifacts/*_IAutopilot*.bin
 .DS_Store
